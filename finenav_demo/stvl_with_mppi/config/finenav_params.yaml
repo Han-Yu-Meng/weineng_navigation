@@ -61,6 +61,10 @@ hello_finenav/finenav_navigator:
 # ══════════════════════════════════════════════════════════════════════════════
 hello_finenav:
   ros__parameters:
+    astar_map_view:
+      lethal_radius: 0.20         # [m] 硬膨胀半径，范围内 cost=253 不可通行
+      inflation_radius: 0.50      # [m] 软膨胀外边界半径
+      cost_scaling_factor: 10.0   # 软膨胀指数衰减系数，越大衰减越快
     terrain_analysis:
       cost_scaling_factor: 0.5
       robot_height: 1.0
@@ -83,7 +87,7 @@ hello_finenav:
       # 机器人本体坐标系：X=前, Y=左, Z=上。所有值均为正数，表示从机器人中心
       # 到对应方向边缘的距离。当 front 参数存在时优先使用非对称模式，
       # 否则回退到对称的 length/width/height。
-      front:  1.1   # [m] 机器人中心 → 前方边缘 (+X)
+      front:  1.1   # [m] 机器人中心 → 前方边缘 (+X) # TODO: 这个得改的
       back:   0.3   # [m] 机器人中心 → 后方边缘 (-X，取正)
       left:   0.4   # [m] 机器人中心 → 左侧边缘 (+Y)
       right:  0.4   # [m] 机器人中心 → 右侧边缘 (-Y，取正)
@@ -102,9 +106,7 @@ hello_finenav:
 # ══════════════════════════════════════════════════════════════════════════════
 hello_finenav/astar_layer:
   ros__parameters:
-    astar_planner:
-      use_empty_map: true
-      empty_map_resolution: 0.05
+    astar_planner: {}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MPPI ControlLayer（RotateShim + MPPIController）
