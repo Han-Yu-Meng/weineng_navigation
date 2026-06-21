@@ -1,8 +1,8 @@
 add_library(terrain_lib
-    src/terrain_analysis.cpp
-    src/terrain_mapview.cpp
-    src/stvl_manager.cpp
-    src/occ_grid_map_view.cpp
+    src/terrain/terrain_analysis.cpp
+    src/terrain/terrain_mapview.cpp
+    src/stvl/stvl_manager.cpp
+    src/occ_grid/occ_grid_map_view.cpp
 )
 ament_target_dependencies(terrain_lib ${dependencies})
 
@@ -19,11 +19,11 @@ target_include_directories(terrain_lib PUBLIC
 )
 
 
-add_executable(hello_finenav src/hello_finenav.cpp)
+add_executable(hello_finenav src/apps/hello_finenav.cpp)
 target_link_libraries(hello_finenav terrain_lib)
 ament_target_dependencies(hello_finenav ${dependencies})
 
-add_executable(goal_pose_bridge_node src/goal_pose_bridge_node.cpp)
+add_executable(goal_pose_bridge_node src/apps/goal_pose_bridge_node.cpp)
 ament_target_dependencies(goal_pose_bridge_node ${dependencies})
 
 install(TARGETS terrain_lib

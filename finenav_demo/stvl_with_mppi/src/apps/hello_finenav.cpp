@@ -21,8 +21,7 @@
 #include "grid_map.hpp" // TODO: resolve anti-pattern export
 #include "astar_path_search.hpp"
 
-#include "occ_grid_map_view.hpp"
-#include "occ_grid_2d_map.hpp"
+#include "occ_grid/occ_grid_map_view.hpp"
 #include "finenav_mppi_controller/controller.hpp"
 #include "finenav_util/cloud_publish_helper.hpp"
 #include "seek_to_nearest_point.hpp"
@@ -45,14 +44,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 // Local demo modules
-#include "stvl_manager.hpp"
-#include "terrain_mapview.hpp"
-#include "finenav_util/cloud_publish_helper.hpp"
-#include "geometry_msgs/msg/twist.hpp"
-#include "trim_by_distance.hpp"
-#include "seek_to_nearest_point.hpp"
-#include "trim_by_aabb.hpp"
-#include "nav_msgs/msg/path.hpp"
+#include "stvl/stvl_manager.hpp"
+#include "terrain/terrain_mapview.hpp"
 
 using namespace finenav;
 
@@ -384,7 +377,8 @@ int main(int argc, char** argv) {
             double lethal_radius       = node->get_parameter("astar_map_view.lethal_radius").as_double();
             double inflation_radius    = node->get_parameter("astar_map_view.inflation_radius").as_double();
             double cost_scaling_factor = node->get_parameter("astar_map_view.cost_scaling_factor").as_double();
-            return std::make_shared<astar::OccGridMapView>(map, 50, lethal_radius, inflation_radius, cost_scaling_factor);
+            int threshold = map.config().occupancy_threshold;
+            return std::make_shared<astar::OccGridMapView>(map, threshold, lethal_radius, inflation_radius, cost_scaling_factor);
         });
 
     using MppiPlanners = PlannerSet<nav2_mppi_controller::MPPIController>;

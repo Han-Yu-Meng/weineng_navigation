@@ -5,7 +5,7 @@
 //
 // Created by fins on 26-4-27.
 //
-#include "terrain_analysis.hpp"
+#include "terrain/terrain_analysis.hpp"
 #include <chrono>
 
 TerrainAnalyzer::TerrainAnalyzer(

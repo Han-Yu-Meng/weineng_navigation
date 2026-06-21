@@ -94,6 +94,8 @@ hello_finenav:
       length: 1.4  # OBB 长轴 [m]，对应机器人前后方向
       width:  1.0  # OBB 短轴 [m]，对应机器人左右方向
       height: 0.0  # OBB 高度 [m]，0 表示 2D 模型
+    occ_grid_2d:
+      occupancy_threshold: 50  # 占据阈值 [0,100]，>= 此值视为障碍
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AstarPathSearch（A* 全局路径搜索）

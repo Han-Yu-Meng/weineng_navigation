@@ -17,6 +17,7 @@ set(dependencies
         rclcpp_action
         finenav_engine
         finenav_map_grid_map
+        finenav_map_occ_grid_2d
         finenav_mppi_controller
         finenav_route_planner
         finenav_core

@@ -6,7 +6,7 @@
 // Created by fins on 26-4-27.
 //
 
-#include "terrain_mapview.hpp"
+#include "terrain/terrain_mapview.hpp"
 
 
 SimpleGridMapView::SimpleGridMapView(

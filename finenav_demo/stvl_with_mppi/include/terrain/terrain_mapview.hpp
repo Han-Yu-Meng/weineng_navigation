@@ -5,7 +5,7 @@
 #include "finenav_mppi_controller/controller.hpp"
 #include "finenav_collision_model/obb_collision_model.hpp"
 #include "grid_map.hpp"
-#include "terrain_analysis.hpp"
+#include "terrain/terrain_analysis.hpp"
 #include "finenav_util/cloud_publish_helper.hpp"
 
 #include <memory>

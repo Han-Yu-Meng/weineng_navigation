@@ -2,7 +2,7 @@
 // IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
 // All rights reserved.
 
-#include "stvl_manager.hpp"
+#include "stvl/stvl_manager.hpp"
 
 using namespace finenav;
 

@@ -12,7 +12,7 @@
 #include <cstring>
 
 #include <opencv2/opencv.hpp>
-#include "voxel.hpp"
+#include "stvl/voxel.hpp"
 
 #include "finenav_util/cloud_publish_helper.hpp"
 #include <nav_msgs/msg/occupancy_grid.hpp>

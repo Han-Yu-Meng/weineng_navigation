@@ -15,7 +15,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include "grid_map.hpp"
-#include "voxel.hpp"
+#include "stvl/voxel.hpp"
 
 namespace finenav {
 
