@@ -1,0 +1,77 @@
+# astar.yaml - AstarPathSearch 参数定义
+#
+# 注意：栅格步长（step size）不在这里定义。
+# 它是地图的属性，由 IMapView::getStepSize() 在规划时提供。
+# 这确保整个导航系统只有一个步长来源。
+astar_planner:
+  # ── 邻居连通性 ─────────────────────────────────────────────
+  #
+  # 同时编码了搜索维度和邻居数量，取代原来的 dimension +
+  # allow_diagonal + diagonal_weight 三个分散参数。
+  #
+  #   "4"  — 2-D,  4-连通（仅正交）
+  #   "8"  — 2-D,  8-连通（正交 + 对角）
+  #   "6"  — 3-D,  6-连通（仅面邻居）
+  #   "18" — 3-D, 18-连通（面 + 棱对角）
+  #   "26" — 3-D, 26-连通（面 + 棱 + 顶角）
+  #
+  # 对角步长由几何确定，不可配置：1轴=1, 2轴=√2, 3轴=√3
+  connectivity:
+    type: string
+    default_value: "8"
+    description: "Grid connectivity: 4/8 for 2-D, 6/18/26 for 3-D"
+    validation:
+      one_of<>: [[ "4", "8", "6", "18", "26" ]]
+  # ── 启发函数 ───────────────────────────────────────────────
+  heuristic:
+    type: string
+    default_value: "Euclidean"
+    description: "Heuristic function: Euclidean | Manhattan | Chebyshev"
+    validation:
+      one_of<>: [[ "Euclidean", "Manhattan", "Chebyshev" ]]
+  # ── 目标容差（单位：米）────────────────────────────────────
+  #
+  # 如果 A* 无法精确到达终点格子，允许在此范围内的最近点作为终点。
+  # 内部自动换算为格子数：goal_tolerance / getStepSize()
+  goal_tolerance:
+    type: double
+    default_value: 0.5
+    description: "Acceptable distance to goal in metres"
+  # ── 搜索终止条件 ───────────────────────────────────────────
+  max_iterations:
+    type: int
+    default_value: 1000000
+    description: "Maximum number of nodes expanded before giving up (-1 = unlimited)"
+  max_planning_time:
+    type: double
+    default_value: 5.0
+    description: "Maximum planning wall-clock time in seconds"
+
+  #—— 运动移动权重 ————————————————————————————————————————————
+  movement_weight:
+    type: double
+    default_value: 1.0
+    description: "Weight for the movement cost in the A* evaluation function"
+
+  #—— 贪心算法参数 ————————————————————————————————————————————
+  greedy_weight:
+    type: double
+    default_value: 1.001
+    description: "Weight for the greedy heuristic in the path planning"
+
+  #—— 空地图模式 ————————————————————————————————————————————
+  #
+  # 当启用时，A* 将使用完全空白的地图进行规划（所有点均可通行，
+  # 代价为零），忽略通过 IMapView 传入的真实全局地图。
+  # 适用于测试、无全局地图场景、或仅依赖局部感知的场景。
+  use_empty_map:
+    type: bool
+    default_value: false
+    description: "If true, use a completely empty map (all cells walkable) for A* planning, ignoring the real global map"
+
+  # 空地图分辨率（仅当 use_empty_map 为 true 时生效）
+  empty_map_resolution:
+    type: double
+    default_value: 0.05
+    description: "Grid resolution (step size) in metres for the empty map mode"
+

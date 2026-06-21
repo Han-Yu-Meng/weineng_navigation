@@ -1,0 +1,87 @@
+# FineNav Engine Parameters
+#
+# 本文件统一管理 FineNavEngine 中全局单例的 generate_parameter_library 参数：
+#   - FineNavLocalizer  （私有子节点 /hello_finenav/finenav_localizer）
+#   - Navigator         （私有子节点 /hello_finenav/finenav_navigator）
+#
+# 与 mppi_params.yaml 一并在 launch 文件中传入同一 Node 即可生效。
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FineNavLocalizer
+# 完整节点路径: /hello_finenav/finenav_localizer
+# ══════════════════════════════════════════════════════════════════════════════
+hello_finenav/finenav_localizer:
+  ros__parameters:
+    # 是否透传
+    passthrough: true
+    # ESKF 更新循环频率 [Hz]
+    update_rate_hz: 50.0
+    # 最大可容忍的观测延迟 [s]
+    max_delay_sec: 0.18
+    # 位姿观测复用次数（R 矩阵按此倍数缩放）
+    pose_smoothing_steps: 4
+    # 速度观测复用次数
+    twist_smoothing_steps: 1
+    # dt 上限 [s]
+    max_dt_sec: 0.5
+    # 每类观测队列容量
+    max_obs_queue_size: 64
+    model:
+      # 线速度过程噪声标准差 [m/s/√s]
+      vel_noise_std: 0.1
+      # 角速度过程噪声标准差 [rad/s/√s]
+      omega_noise_std: 0.1
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Navigator
+# 完整节点路径: /hello_finenav/finenav_navigator
+# ══════════════════════════════════════════════════════════════════════════════
+hello_finenav/finenav_navigator:
+  ros__parameters:
+    # Action Server 名称（客户端向此名称发送 NavigateToPose 目标）
+    action_name: "navigate_to_pose"
+    # 行为树 tick 频率 [Hz]
+    tick_frequency: 50
+    # BT 插件库列表（格式: "package_name/subfolder"）
+    # finenav_navigator 的条件插件安装在 lib/plugins/
+    # TODO: ：generate_parameter_library 的 unique<>: null 验证器在收到显式传入的空数组 [] 时会触发 InvalidParameterValueException
+    plugins:
+      - "finenav_navigator/lib/plugins"
+    # 行为树 XML 文件目录（格式: "package_name/subfolder"）
+    # navigate_to_pose.xml 安装在 share/finenav_navigator/behavior_trees/
+    behavior_trees:
+      - "finenav_navigator/behavior_trees"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HelloFinenav Main Node
+# 包含地形分析、STVL等模块参数
+# ══════════════════════════════════════════════════════════════════════════════
+hello_finenav:
+  ros__parameters:
+    astar_map_view:
+      lethal_radius: 0.25        # 硬膨胀半径 [m]，范围内 cost=253 不可通行
+      inflation_radius: 2.0     # 软膨胀外边界半径 [m]
+      cost_scaling_factor: 0.2 # 软膨胀指数衰减系数，越大衰减越快
+    terrain_analysis:
+      cost_scaling_factor: 0.5
+      robot_height: 1.0
+      max_gradient: 0.08
+    stvl_manager:
+      decay_time_sec: 0.5
+      decay_time_fov_sec: 0.5
+      min_range: 0.0
+      max_range: 50.0
+      min_angle: 0.0
+      max_angle: 1.047 # M_PI / 3.0
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Astar Planner — 空地图模式
+# 完整节点路径: /hello_finenav/astar_layer
+# ══════════════════════════════════════════════════════════════════════════════
+/hello_finenav/astar_layer:
+  ros__parameters:
+    astar_planner:
+      use_empty_map: true              # 使用完全空白地图，不依赖 /map
+      empty_map_resolution: 0.05       # 空地图栅格分辨率 [m]

@@ -1,0 +1,7 @@
+occ_grid_2d:
+  occupancy_threshold:
+    type: int
+    default_value: 50
+    description: "Cells with occupancy value >= threshold are treated as obstacles [0, 100]"
+    validation:
+      bounds<>: [0, 100]

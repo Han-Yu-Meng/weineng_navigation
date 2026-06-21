@@ -1,0 +1,127 @@
+finenav_localizer:
+  passthrough: {
+    type: bool,
+    default_value: true,
+    description: "If true, bypass ESKF and output latest Pose/Twist directly (Zero calculation)",
+  }
+  update_rate_hz: {
+    type: double,
+    default_value: 100.0,
+    description: "Timer frequency [Hz] for the ESKF update loop",
+    validation: {
+      bounds<>: [1.0, 1000.0]
+    }
+  }
+  max_delay_sec: {
+    type: double,
+    default_value: 0.5,
+    description: "Maximum tolerable observation delay [s]",
+    validation: {
+      bounds<>: [0.0, 5.0]
+    }
+  }
+  pose_smoothing_steps: {
+    type: int,
+    default_value: 1,
+    description: "Number of times a pose observation is reused; R is scaled by this factor",
+    validation: {
+      bounds<>: [1, 20]
+    }
+  }
+  twist_smoothing_steps: {
+    type: int,
+    default_value: 1,
+    description: "Number of times a twist observation is reused; R is scaled by this factor",
+    validation: {
+      bounds<>: [1, 20]
+    }
+  }
+  pose_gate_dist: {
+    type: double,
+    default_value: 1000000000.0,
+    description: "Mahalanobis gate distance for pose observations; set large (>=0) to disable gating",
+    validation: {
+      bounds<>: [0.0, 1000000000.0]
+    }
+  }
+  twist_gate_dist: {
+    type: double,
+    default_value: 1000000000.0,
+    description: "Mahalanobis gate distance for twist observations; set large (>=0) to disable gating",
+    validation: {
+      bounds<>: [0.0, 1000000000.0]
+    }
+  }
+  max_dt_sec: {
+    type: double,
+    default_value: 0.5,
+    description: "Upper bound clamp for dt [s]",
+    validation: {
+      bounds<>: [0.001, 5.0]
+    }
+  }
+  max_obs_queue_size: {
+    type: int,
+    default_value: 64,
+    description: "Per-type observation queue capacity",
+    validation: {
+      bounds<>: [1, 1024]
+    }
+  }
+  rel_pose_smoothing_steps: {
+    type: int,
+    default_value: 1,
+    description: "Number of times a relative-pose obs is reused; R is scaled by this factor",
+    validation: {
+      bounds<>: [1, 20]
+    }
+  }
+  rel_pose_gate_dist: {
+    type: double,
+    default_value: 1000000000.0,
+    description: "Mahalanobis gate distance for relative-pose observations; set large to disable",
+    validation: {
+      bounds<>: [0.0, 1000000000.0]
+    }
+  }
+  max_rel_pose_queue_size: {
+    type: int,
+    default_value: 64,
+    description: "Relative-pose observation queue capacity",
+    validation: {
+      bounds<>: [1, 1024]
+    }
+  }
+  history_duration_sec: {
+    type: double,
+    default_value: 2.0,
+    description: "Duration [s] of the rolling NavStateBuffer history window for time-stamped state queries",
+    validation: {
+      bounds<>: [0.1, 60.0]
+    }
+  }
+  publish_tf: {
+    type: bool,
+    default_value: false,
+    description: "Whether to broadcast the map->base_link TF transform on each filter update tick",
+  }
+  model:
+    vel_noise_std: {
+      type: double,
+      default_value: 0.10,
+      description: "Linear velocity process noise std [m/s/√s]",
+      validation: {
+        bounds<>: [0.000001, 100.0]
+      }
+    }
+    omega_noise_std: {
+      type: double,
+      default_value: 0.10,
+      description: "Angular velocity process noise std [rad/s/√s]",
+      validation: {
+        bounds<>: [0.000001, 100.0]
+      }
+    }
+
+
+

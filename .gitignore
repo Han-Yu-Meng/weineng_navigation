@@ -1,0 +1,10 @@
+# Clion
+cmake-build-debug/
+.idea/*
+!.idea/copyright/
+!.idea/codeStyles/
+
+# ROS2
+build/
+install/
+log/

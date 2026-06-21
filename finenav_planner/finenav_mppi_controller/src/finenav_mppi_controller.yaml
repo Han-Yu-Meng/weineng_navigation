@@ -1,0 +1,378 @@
+finenav_mppi_controller:
+  # ── Optimizer settings ─────────────────────────────────────────────────────
+  time_steps:
+    type: int
+    default_value: 56
+    description: "Number of time steps in trajectory rollout"
+    validation:
+      gt<>: [0]
+  model_dt:
+    type: double
+    default_value: 0.05
+    description: "Time step duration (s). controller_period = model_dt is required."
+    validation:
+      gt<>: [0.0]
+  batch_size:
+    type: int
+    default_value: 2000
+    description: "Number of sampled trajectories per iteration"
+    validation:
+      gt<>: [0]
+  iteration_count:
+    type: int
+    default_value: 1
+    description: "Number of optimization iterations per control cycle"
+    validation:
+      gt<>: [0]
+  temperature:
+    type: double
+    default_value: 0.3
+    description: "MPPI temperature: higher = more exploration, lower = more exploitation"
+    validation:
+      gt<>: [0.0]
+  gamma:
+    type: double
+    default_value: 0.015
+    description: "Control cost regularization coefficient"
+  motion_model:
+    type: string
+    default_value: "DiffDrive"
+    description: "Motion model type: DiffDrive, Omni, Ackermann"
+    validation:
+      one_of<>: [["DiffDrive", "Omni", "Ackermann"]]
+
+  # ── Velocity constraints ───────────────────────────────────────────────────
+  vx_max:
+    type: double
+    default_value: 0.5
+    description: "Maximum forward velocity (m/s)"
+  vx_min:
+    type: double
+    default_value: -0.35
+    description: "Minimum forward velocity (m/s). Negative = allow reverse."
+  vy_max:
+    type: double
+    default_value: 0.0
+    description: "Maximum lateral velocity (m/s). 0 for non-holonomic."
+  wz_max:
+    type: double
+    default_value: 1.9
+    description: "Maximum angular velocity (rad/s)"
+
+  # ── Sampling standard deviations ──────────────────────────────────────────
+  vx_std:
+    type: double
+    default_value: 0.2
+    description: "Sampling standard deviation for forward velocity"
+    validation:
+      gt<>: [-0.01]
+  vy_std:
+    type: double
+    default_value: 0.2
+    description: "Sampling standard deviation for lateral velocity"
+    validation:
+      gt<>: [-0.01]
+  wz_std:
+    type: double
+    default_value: 0.4
+    description: "Sampling standard deviation for angular velocity"
+    validation:
+      gt<>: [-0.01]
+
+  # ── Critics ────────────────────────────────────────────────────────────────
+  ConstraintCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable ConstraintCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 4.0
+      description: "Weight for constraint violation cost"
+
+  GoalCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable GoalCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 5.0
+      description: "Weight for goal attraction cost"
+    threshold_to_consider:
+      type: double
+      default_value: 1.4
+      description: "Distance from goal at which critic activates (m)"
+
+  GoalAngleCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable GoalAngleCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 3.0
+      description: "Weight for goal heading alignment cost"
+    threshold_to_consider:
+      type: double
+      default_value: 0.5
+      description: "Distance from goal at which critic activates (m)"
+
+  PreferForwardCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable PreferForwardCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 5.0
+      description: "Weight for preferring forward motion"
+    threshold_to_consider:
+      type: double
+      default_value: 0.5
+      description: "Distance threshold to activate this critic (m)"
+
+  CostCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable CostCritic (uses costmap inflation cost)"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 3.81
+      description: "Weight for costmap cost (internally normalized by 254)"
+    critical_cost:
+      type: double
+      default_value: 300.0
+      description: "Penalty added when pose cost >= 253 (near-lethal)"
+    collision_cost:
+      type: double
+      default_value: 1000000.0
+      description: "Penalty for trajectories in collision"
+    near_goal_distance:
+      type: double
+      default_value: 1.0
+      description: "Distance from goal where repulsion is disabled (m)"
+    consider_footprint:
+      type: bool
+      default_value: true
+      description: "Use full footprint collision check instead of center point"
+
+  PathAlignCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable PathAlignCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 14.0
+      description: "Weight for path alignment cost"
+    max_path_occupancy_ratio:
+      type: double
+      default_value: 0.05
+      description: "Max fraction of path points that may be occupied before disabling critic"
+    trajectory_point_step:
+      type: int
+      default_value: 4
+      description: "Step size between trajectory points evaluated for alignment"
+      validation:
+        gt<>: [0]
+    threshold_to_consider:
+      type: double
+      default_value: 0.5
+      description: "Distance to goal below which critic deactivates (m)"
+    offset_from_furthest:
+      type: int
+      default_value: 20
+      description: "Offset from furthest reachable path point for alignment target"
+    use_path_orientations:
+      type: bool
+      default_value: false
+      description: "Include path point orientation in alignment cost"
+
+  PathAlignLegacyCritic:
+    enabled:
+      type: bool
+      default_value: false
+      description: "Enable PathAlignLegacyCritic (legacy variant, prefer PathAlignCritic)"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 10.0
+      description: "Weight for path alignment cost"
+    max_path_occupancy_ratio:
+      type: double
+      default_value: 0.07
+      description: "Max fraction of path points that may be occupied"
+    trajectory_point_step:
+      type: int
+      default_value: 4
+      description: "Step size between trajectory points"
+      validation:
+        gt<>: [0]
+    threshold_to_consider:
+      type: double
+      default_value: 0.5
+      description: "Distance to goal below which critic deactivates (m)"
+    offset_from_furthest:
+      type: int
+      default_value: 20
+      description: "Offset from furthest reachable path point"
+    use_path_orientations:
+      type: bool
+      default_value: false
+      description: "Include path point orientation in alignment cost"
+
+  PathFollowCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable PathFollowCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 5.0
+      description: "Weight for path following cost"
+    offset_from_furthest:
+      type: int
+      default_value: 6
+      description: "Offset from furthest reachable path point for follow target"
+    threshold_to_consider:
+      type: double
+      default_value: 1.4
+      description: "Distance to goal below which critic deactivates (m)"
+
+  PathAngleCritic:
+    enabled:
+      type: bool
+      default_value: true
+      description: "Enable PathAngleCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 2.0
+      description: "Weight for path angle cost"
+    offset_from_furthest:
+      type: int
+      default_value: 4
+      description: "Offset from furthest reachable path point"
+    threshold_to_consider:
+      type: double
+      default_value: 0.5
+      description: "Distance to goal below which critic deactivates (m)"
+    max_angle_to_furthest:
+      type: double
+      default_value: 1.0
+      description: "Maximum allowed yaw error to furthest path point (rad)"
+    forward_preference:
+      type: bool
+      default_value: true
+      description: "If true, only forward-facing angles are considered; if false, both forward and reverse directions are evaluated (requires vx_min < 0 for reverse to be physically meaningful)"
+
+  ObstaclesCritic:
+    enabled:
+      type: bool
+      default_value: false
+      description: "Enable ObstaclesCritic. Disabled by default; use CostCritic instead."
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    repulsion_weight:
+      type: double
+      default_value: 1.5
+      description: "Weight for obstacle repulsion cost"
+    critical_weight:
+      type: double
+      default_value: 20.0
+      description: "Weight for near-collision penalty"
+    consider_footprint:
+      type: bool
+      default_value: false
+      description: "Use full footprint collision checking"
+    collision_cost:
+      type: double
+      default_value: 10000.0
+      description: "Penalty for trajectories in collision"
+    collision_margin_distance:
+      type: double
+      default_value: 0.1
+      description: "Minimum clearance before collision penalty begins (m)"
+    near_goal_distance:
+      type: double
+      default_value: 0.5
+      description: "Distance from goal where repulsion is disabled (m)"
+    inflation_radius:
+      type: double
+      default_value: 2.0
+      description: "Inflation layer radius (m)"
+    cost_scaling_factor:
+      type: double
+      default_value: 10.0
+      description: "Inflation cost scaling factor (matches costmap inflation layer)"
+
+  TwirlingCritic:
+    enabled:
+      type: bool
+      default_value: false
+      description: "Enable TwirlingCritic (penalizes unnecessary spinning)"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 10.0
+      description: "Weight for twirling cost"
+
+  VelocityDeadbandCritic:
+    enabled:
+      type: bool
+      default_value: false
+      description: "Enable VelocityDeadbandCritic"
+    cost_power:
+      type: int
+      default_value: 1
+      description: "Power exponent applied to cost"
+    cost_weight:
+      type: double
+      default_value: 35.0
+      description: "Weight for velocity deadband cost"
+    deadband_velocities:
+      type: double_array
+      default_value: [0.05, 0.05, 0.05]
+      description: "Deadband thresholds [vx, vy, wz]; velocities below are penalized"
+

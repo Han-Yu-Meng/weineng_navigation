@@ -1,0 +1,38 @@
+finenav_navigator:
+  action_name: {
+    type: string,
+    default_value: "navigate_to_pose",
+    description: "The name the Action Server takes requests from",
+  }
+  tick_frequency: {
+    type: int,
+    default_value: 100,
+    description: "Frequency in Hz to tick() the Behavior tree at",
+    validation: {
+      bounds<>: [1, 1000]
+    }
+  }
+  plugins: {
+    type: string_array,
+    default_value: [],
+    description: "List of 'package_name/subfolder' containing BehaviorTree plugins to load into the factory",
+    validation: {
+      unique<>: null,
+    }
+  }
+  ros_plugins_timeout: {
+    type: int,
+    default_value: 1000,
+    description: "Timeout (ms) used in BT::RosNodeParams",
+    validation: {
+      bounds<>: [1, 10000]
+    }
+  }
+  behavior_trees: {
+    type: string_array,
+    default_value: [],
+    description: "List of 'package_name/subfolder' containing SubTrees to load into the BehaviorTree factory",
+    validation: {
+      unique<>: null,
+    }
+  }

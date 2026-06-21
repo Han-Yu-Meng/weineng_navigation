@@ -1,0 +1,57 @@
+# Observation Covariance Configuration for FineNavLocalizer
+#
+# 本文件控制喂给 localizer 的两类观测（位姿 / 速度）的协方差数值。
+# 调大某一项 → 对该维度的观测信任度降低（更依赖预测）。
+# 调小某一项 → 对该维度的观测信任度升高（更快跟随观测）。
+#
+# 节点路径: /hello_finenav
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Observation Covariance Configuration for FineNavLocalizer
+#
+# 本文件控制喂给 localizer 的三类观测通道的协方差数值。
+# 调大某一项 → 对该维度的观测信任度降低（更依赖预测）。
+# 调小某一项 → 对该维度的观测信任度升高（更快跟随观测）。
+#
+# 通道说明:
+#   global_pose_cov_*  → /localization_pose (pose 通道)：信任 x/y/z/yaw，不信任 roll/pitch
+#   odom_pose_cov_*    → /Odometry (pose 通道)：仅信任 roll/pitch (IMU)，其余维度不信任
+#   odom_rel_cov_*     → /Odometry (relativePose 通道)：帧间增量不确定度（降频喂入）
+#
+# 节点路径: /hello_finenav
+# ──────────────────────────────────────────────────────────────────────────────
+
+hello_finenav:
+  ros__parameters:
+    obs_cov:
+
+      # ── Global pose (/localization_pose → pose channel) ──────────────────
+      # 策略: 信任 x/y/z/yaw；不信任 roll/pitch（全局位姿源无绝对重力对齐参考）
+      global_pose_cov_x:     1.0e-6
+      global_pose_cov_y:     1.0e-6
+      global_pose_cov_z:     1.0e-6
+      global_pose_cov_roll:  1.0e9    # 不信任 — 设为极大方差
+      global_pose_cov_pitch: 1.0e9    # 不信任 — 设为极大方差
+      global_pose_cov_yaw:   1.0e-6
+
+      # ── Odometry abs pose (/Odometry → pose channel) ─────────────────────
+      # 策略: 仅信任 roll/pitch（IMU 重力对齐可靠）；x/y/z/yaw 设极大方差不参与修正
+      # 前提：地图坐标系与机器人启动时初始位置坐标系在同一水平面（通常满足）。
+      odom_pose_cov_x:     1.0e9    # 不信任
+      odom_pose_cov_y:     1.0e9    # 不信任
+      odom_pose_cov_z:     1.0e9    # 不信任
+      odom_pose_cov_roll:  0.00001  # 信任 (IMU 倾角)
+      odom_pose_cov_pitch: 0.00001  # 信任 (IMU 倾角)
+      odom_pose_cov_yaw:   1.0e9    # 不信任
+
+      # ── Odometry twist (/Odometry → twist channel) ───────────────────────
+      # 策略: 直接注入 body-frame 速度，对 omega 状态施加实时约束，消除旋转滞后。
+      #   lin_* : 线速度协方差（方差，m²/s²）；不信任线速度可设极大值
+      #   ang_* : 角速度协方差（方差，rad²/s²）；信任角速度以直接约束 omega 状态
+      odom_twist_cov_lin_x:  1.0e9    # 不信任
+      odom_twist_cov_lin_y:  1.0e9    # 不信任
+      odom_twist_cov_lin_z:  1.0e9    # 不信任
+      odom_twist_cov_ang_x:  0.01     # 信任 roll rate
+      odom_twist_cov_ang_y:  0.01     # 信任 pitch rate
+      odom_twist_cov_ang_z:  0.01     # 信任 yaw rate
+

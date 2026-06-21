@@ -1,0 +1,16 @@
+hello_finenav:
+  ros__parameters:
+    abs_pose_sigma:
+      x: 1.0e9
+      y: 1.0e9
+      z: 1.0e9
+      roll: 1.0e-6
+      pitch: 1.0e-6
+      yaw: 1.0e9
+    rel_pose_sigma:
+      x: 1.0e-6
+      y: 1.0e-6
+      z: 1.0e-6
+      roll: 1.0e9
+      pitch: 1.0e9
+      yaw: 1.0e-6
