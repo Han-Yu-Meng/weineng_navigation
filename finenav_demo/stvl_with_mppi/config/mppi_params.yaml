@@ -36,7 +36,7 @@
       model_dt: 0.1          # 单步时长 (s)，确保 controller_period == model_dt
       batch_size: 2000       # 每次迭代的采样轨迹数
       iteration_count: 1      # 每个控制周期内的优化迭代次数（实时性考虑设为 1）
-      temperature: 0.35        # 0→ 只取最优轨迹；很大 → 近均匀平均
+      temperature: 0.45 # 0.35        # 0→ 只取最优轨迹；很大 → 近均匀平均
       gamma: 0.015            # 控制输入能量正则化系数
       motion_model: "DiffDrive"  # 运动模型: DiffDrive | Omni | Ackermann
 
@@ -44,12 +44,12 @@
       vx_max: 0.6             # 最大前向速度 (m/s)
       vx_min: 0.0         # 最小前向速度（负值允许倒退）
       vy_max: 0.0             # 最大横向速度（差速底盘设为 0）
-      wz_max: 0.6            # 最大角速度 (rad/s)
+      wz_max: 0.4            # 最大角速度 (rad/s)
 
       # ── 噪声采样标准差 ────────────────────────────────────────────────────
-      vx_std: 0.3             # vx 采样标准差
+      vx_std: 0.2             # vx 采样标准差
       vy_std: 0.001             # vy 采样标准差
-      wz_std: 0.4             # wz 采样标准差
+      wz_std: 0.2             # wz 采样标准差
 
       # ══════════════════════════════════════════════════════════════════════
       # Critic 参数
