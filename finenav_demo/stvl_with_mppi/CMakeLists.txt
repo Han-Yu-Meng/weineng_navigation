@@ -51,3 +51,7 @@ install(DIRECTORY launch
 install(DIRECTORY config
         DESTINATION share/${PROJECT_NAME}
 )
+
+install(DIRECTORY behavior_tree
+        DESTINATION share/${PROJECT_NAME}
+)

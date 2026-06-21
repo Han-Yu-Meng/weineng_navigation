@@ -23,6 +23,7 @@
 
 #include "occ_grid/occ_grid_map_view.hpp"
 #include "finenav_mppi_controller/controller.hpp"
+#include "finenav_rotate_shim/rotate_shim.hpp"
 #include "finenav_util/cloud_publish_helper.hpp"
 #include "seek_to_nearest_point.hpp"
 #include "trim_by_aabb.hpp"
@@ -381,7 +382,7 @@ int main(int argc, char** argv) {
             return std::make_shared<astar::OccGridMapView>(map, threshold, lethal_radius, inflation_radius, cost_scaling_factor);
         });
 
-    using MppiPlanners = PlannerSet<nav2_mppi_controller::MPPIController>;
+    using MppiPlanners = PlannerSet<finenav::RotateShim, nav2_mppi_controller::MPPIController>;
     auto my_control_layer = finenav_engine->createControlLayer<MppiPlanners>(
         "mppi_layer", finenav::TrackingPolicy{10.0});
 

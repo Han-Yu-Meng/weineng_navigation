@@ -17,6 +17,7 @@
 
     <depend>finenav_mppi_controller</depend>
     <depend>finenav_route_planner</depend>
+    <depend>finenav_rotate_shim</depend>
     <depend>finenav_core</depend>
     <depend>finenav_collision_model</depend>
 

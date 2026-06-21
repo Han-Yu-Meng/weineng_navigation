@@ -48,13 +48,12 @@ hello_finenav/finenav_navigator:
     tick_frequency: 50
     # BT 插件库列表（格式: "package_name/subfolder"）
     # finenav_navigator 的条件插件安装在 lib/plugins/
-    # TODO: ：generate_parameter_library 的 unique<>: null 验证器在收到显式传入的空数组 [] 时会触发 InvalidParameterValueException
     plugins:
       - "finenav_navigator/lib/plugins"
     # 行为树 XML 文件目录（格式: "package_name/subfolder"）
-    # navigate_to_pose.xml 安装在 share/finenav_navigator/behavior_trees/
+    # navigate_to_pose.xml 安装在 share/finenav_demo/behavior_tree/
     behavior_trees:
-      - "finenav_navigator/behavior_trees"
+      - "finenav_demo/behavior_tree"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HelloFinenav Main Node
@@ -106,3 +105,14 @@ hello_finenav/astar_layer:
     astar_planner:
       use_empty_map: true
       empty_map_resolution: 0.05
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MPPI ControlLayer（RotateShim + MPPIController）
+# 完整节点路径: /hello_finenav/mppi_layer
+# ══════════════════════════════════════════════════════════════════════════════
+hello_finenav/mppi_layer:
+  ros__parameters:
+    finenav_rotate_shim:
+      forward_sampling_distance: 0.5   # [m] 在前方多远采样目标朝向
+      angular_speed: 0.6               # [rad/s] 原地旋转角速度
+      angular_dist_threshold: 0.785    # [rad] 朝向误差阈值 (≈45°)

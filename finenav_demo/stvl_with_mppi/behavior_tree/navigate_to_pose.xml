@@ -1,0 +1,41 @@
+<!--
+  ~ Copyright (c) 2026.
+  ~ IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
+  ~ All rights reserved.
+  -->
+
+<root BTCPP_format="4">
+
+    <!-- 主导航行为树：支持动态跟随抢占普通导航 -->
+    <BehaviorTree ID="NavigateToPose">
+        <Sequence name="TrackThenStop">
+            <ReactiveFallback name="NavigateOrSucceed">
+                <IsGoalReached  robot_pose="{robot_pose}"
+                                robot_twist="{robot_twist}"
+                                goal="{goal}"
+                                tolerance="0.25"
+                                yaw_tolerance="1.57"
+                                speed_tolerance="0.5"/>
+                <Sequence name="RouteThenMppi">
+                    <ComputePlan action_name="/hello_finenav/astar_layer"
+                                 goal="{goal}"
+                                 planner_id="astar_planner"/>
+                    <!--  TODO: 目前对于成功的判定有问题，当完成规划任务后，事实上返回的是Failure，所以需要 ForceSuccess-->
+                    <ForceSuccess>
+                        <ComputePlan action_name="/hello_finenav/mppi_layer"
+                                     goal="{goal}"
+                                     planner_id="finenav_rotate_shim"/>
+                    </ForceSuccess>
+                    <!-- MPPI 跟踪失败时仅重试 MPPI，不重新规划全局路径 -->
+                    <RetryUntilSuccessful num_attempts="-1">
+                        <ComputePlan action_name="/hello_finenav/mppi_layer"
+                                     goal="{goal}"
+                                     planner_id="finenav_mppi_controller"/>
+                    </RetryUntilSuccessful>
+                </Sequence>
+            </ReactiveFallback>
+            <!-- ReactiveFallback 返回 SUCCESS（IsGoalReached触发或MPPI到达目标）后，发布零速 -->
+            <PublishZeroCmdVel  topic_name="/cmd_vel"/>
+        </Sequence>
+    </BehaviorTree>
+</root>
