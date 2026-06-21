@@ -29,7 +29,8 @@ public:
         const std::shared_ptr<finenav::MapServer<finenav::GridMap<Voxel>>> map_server,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<finenav_utils::CloudPublishHelper> passability_helper = nullptr,
-        std::shared_ptr<finenav_utils::CloudPublishHelper> costmap_helper = nullptr);
+        std::shared_ptr<finenav_utils::CloudPublishHelper> costmap_helper = nullptr,
+        std::shared_ptr<finenav_utils::CloudPublishHelper> ground_helper = nullptr);
 
     /**
      * @brief 执行一次完整的地形分析与膨胀，并发布可视化点云。
@@ -42,6 +43,8 @@ public:
      * @brief 根据世界坐标查询代价值。
      */
     int getCost(const finenav::Position3D& pos, const finenav::GridMap<Voxel>& map) const;
+
+    double getGroundZOffset() const { return ground_z_offset_; }
 
     /**
      * @brief 将距离（栅格数）转换为代价值，使用缓存的分辨率，无需访问地图。
@@ -60,6 +63,9 @@ private:
     rclcpp::Node::SharedPtr node_;  // 仅用于获取时间戳
     std::shared_ptr<finenav_utils::CloudPublishHelper> passability_helper_;
     std::shared_ptr<finenav_utils::CloudPublishHelper> costmap_helper_;
+    std::shared_ptr<finenav_utils::CloudPublishHelper> ground_helper_;
+
+    Eigen::ArrayXXf ground_array_;
 
     nav_msgs::msg::OccupancyGrid::SharedPtr global_map_;
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr global_map_sub_;
@@ -69,5 +75,15 @@ private:
     double cost_scaling_factor_{1.0};
     double robot_height_{1.0};
     double max_gradient_{0.8};
+    double max_range_gradient_{0.5};
+    double min_dist_for_range_gradient_{0.6};
+    double nan_fill_radius_{1.0};
+    double ground_z_offset_{0.125};
+    double nan_fill_grace_time_{3.0};
     double cached_resolution_{0.1};
+
+    // Simple Z-threshold mode
+    bool use_simple_z_threshold_{false};
+    double z_obstacle_threshold_{0.3};  // voxels with z > robot_pose_z + threshold are obstacles
+
 };

@@ -13,9 +13,9 @@
     <depend>rclcpp</depend>
     <depend>finenav_engine</depend>
     <depend>finenav_map_grid_map</depend>
-    <depend>finenav_map_occ_grid_2d</depend>
+
     <depend>finenav_mppi_controller</depend>
-    <depend>finenav_planner_astar</depend>
+    <depend>finenav_route_planner</depend>
     <depend>finenav_core</depend>
     <depend>finenav_collision_model</depend>
 
@@ -26,8 +26,8 @@
     <depend>geometry_msgs</depend>
     <depend>sensor_msgs</depend>
     <depend>tf2</depend>
-    <depend>tf2_ros</depend>
     <depend>tf2_eigen</depend>
+    <depend>tf2_geometry_msgs</depend>
     <depend>message_filters</depend>
 
     <export>

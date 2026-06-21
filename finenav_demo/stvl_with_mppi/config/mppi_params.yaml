@@ -32,24 +32,24 @@
     finenav_mppi_controller:
 
       # ── 轨迹优化器基础参数 ─────────────────────────────────────────────────
-      time_steps: 30          # 每条候选轨迹的时间步数
-      model_dt: 0.05          # 单步时长 (s)，确保 controller_period == model_dt
-      batch_size: 3000       # 每次迭代的采样轨迹数
+      time_steps: 35          # 每条候选轨迹的时间步数
+      model_dt: 0.1          # 单步时长 (s)，确保 controller_period == model_dt
+      batch_size: 2000       # 每次迭代的采样轨迹数
       iteration_count: 1      # 每个控制周期内的优化迭代次数（实时性考虑设为 1）
       temperature: 0.35        # 0→ 只取最优轨迹；很大 → 近均匀平均
       gamma: 0.015            # 控制输入能量正则化系数
       motion_model: "DiffDrive"  # 运动模型: DiffDrive | Omni | Ackermann
 
       # ── 速度约束 ──────────────────────────────────────────────────────────
-      vx_max: 0.5             # 最大前向速度 (m/s)
-      vx_min: 0.0         # 最小前向速度（负值允许倒退）
+      vx_max: 0.6             # 最大前向速度 (m/s)
+      vx_min: -0.15         # 最小前向速度（负值允许倒退）
       vy_max: 0.0             # 最大横向速度（差速底盘设为 0）
-      wz_max: 1.0            # 最大角速度 (rad/s)
+      wz_max: 0.6            # 最大角速度 (rad/s)
 
       # ── 噪声采样标准差 ────────────────────────────────────────────────────
-      vx_std: 0.3             # vx 采样标准差
-      vy_std: 0.01             # vy 采样标准差
-      wz_std: 0.4             # wz 采样标准差
+      vx_std: 0.4             # vx 采样标准差
+      vy_std: 0.001             # vy 采样标准差
+      wz_std: 0.5             # wz 采样标准差
 
       # ══════════════════════════════════════════════════════════════════════
       # Critic 参数
@@ -64,31 +64,31 @@
 
       # GoalCritic：距目标足够近时，引导机器人直接趋向目标点
       GoalCritic:
-        enabled: false
+        enabled: true
         cost_power: 1
         cost_weight: 5.0
         threshold_to_consider: 0.5   # 距目标 ≤ 此距离时激活 (m)
 
       # GoalAngleCritic：距目标足够近时，惩罚朝向与目标姿态偏差
       GoalAngleCritic:
-        enabled: false
+        enabled: true
         cost_power: 1
         cost_weight: 3.0
         threshold_to_consider: 0.5
 
       # PreferForwardCritic：鼓励前进，抑制倒退
       PreferForwardCritic:
-        enabled: false            # 差速底盘若无需倒退可开启
+        enabled: true            #  差速底盘若无需倒退可开启
         cost_power: 1
-        cost_weight: 5.0
+        cost_weight: 20.0
         threshold_to_consider: 0.5
 
       # CostCritic：直接使用 costmap 代价进行避障惩罚（推荐启用）
       CostCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 3.81
-        critical_cost: 100.0      # costmap 代价 ≥ 253 时施加此惩罚
+        cost_weight: 20.81
+        critical_cost: 200.0      # costmap 代价 ≥ 253 时施加此惩罚
         consider_footprint: true  # 使用完整 footprint 检查
         collision_cost: 1000000.0 # 碰撞轨迹惩罚
         near_goal_distance: 1.0   # 距目标 ≤ 此距离时关闭 CostCritic (m)
@@ -99,9 +99,9 @@
         enabled: false
         cost_power: 1
         consider_footprint: true
-        collision_cost: 10.0
+        collision_cost: 50.0
         collision_margin_distance: 0.05
-        critical_weight: 20.0
+        critical_weight: 30.0
         near_goal_distance: 0.5
         repulsion_weight: 2.5
         inflation_radius: 0.5     # 膨胀半径 (m)，需与 costmap 膨胀层匹配
@@ -111,7 +111,7 @@
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 14.0
+        cost_weight: 2.0
         max_path_occupancy_ratio: 0.05  # 允许全局路径穿过占用格的最大比例
         trajectory_point_step: 4
         threshold_to_consider: 0.5
@@ -122,7 +122,7 @@
       PathAlignLegacyCritic:
         enabled: false
         cost_power: 1
-        cost_weight: 10.0
+        cost_weight: 2.0
         max_path_occupancy_ratio: 0.07
         trajectory_point_step: 4
         threshold_to_consider: 0.5
@@ -142,10 +142,11 @@
       PathAngleCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 2.0
+        cost_weight: 10.0
         offset_from_furthest: 15
         threshold_to_consider: 0.5
         max_angle_to_furthest: 1.0
+        forward_preference: false    # true=只考虑前向角度; false=同时评估前向与倒车方向（需要 vx_min < 0）
 
       # VelocityDeadbandCritic：惩罚死区内的速度（防止低速抖动）
       VelocityDeadbandCritic:

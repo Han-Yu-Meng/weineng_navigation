@@ -17,9 +17,8 @@ set(dependencies
         rclcpp_action
         finenav_engine
         finenav_map_grid_map
-        finenav_map_occ_grid_2d
         finenav_mppi_controller
-        finenav_planner_astar
+        finenav_route_planner
         finenav_core
         finenav_collision_model
         finenav_motion_decorator
@@ -27,8 +26,8 @@ set(dependencies
         geometry_msgs
         sensor_msgs
         tf2
-        tf2_ros
         tf2_eigen
+        tf2_geometry_msgs
         message_filters
         pcl_conversions
 )

@@ -6,6 +6,7 @@
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -19,7 +20,9 @@
 #include "finenav_engine/finenav_engine.hpp"
 #include "grid_map.hpp" // TODO: resolve anti-pattern export
 #include "astar_path_search.hpp"
+
 #include "occ_grid_map_view.hpp"
+#include "occ_grid_2d_map.hpp"
 #include "finenav_mppi_controller/controller.hpp"
 #include "finenav_util/cloud_publish_helper.hpp"
 #include "seek_to_nearest_point.hpp"
@@ -43,8 +46,7 @@
 
 // Local demo modules
 #include "stvl_manager.hpp"
-#include "height_analysis.hpp"
-#include "height_mapview.hpp"
+#include "terrain_mapview.hpp"
 #include "finenav_util/cloud_publish_helper.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "trim_by_distance.hpp"
@@ -246,10 +248,15 @@ int main(int argc, char** argv) {
 
     // ============================================================
 
-    auto height_analyzer = std::make_shared<HeightAnalyzer>(
-        map_server, node, passability_helper, costmap_helper);
+    auto terrain_analyzer = std::make_shared<TerrainAnalyzer>(
+        map_server, node, passability_helper, costmap_helper, ground_helper);
 
-    map_server->registerPreUpdateHook([stvl_manager, localizer](GridMap<Voxel> & map) {
+    using Clock = std::chrono::steady_clock;
+    using Ms    = std::chrono::duration<double, std::milli>;
+    auto cycle_t0 = std::make_shared<Clock::time_point>();
+
+    map_server->registerPreUpdateHook([stvl_manager, localizer, cycle_t0](GridMap<Voxel> & map) {
+        *cycle_t0 = Clock::now();
         const auto & state = localizer->getState();
         Eigen::Isometry3d T_map_body = Eigen::Isometry3d::Identity();
         T_map_body.linear() = state.R.matrix();
@@ -257,9 +264,9 @@ int main(int argc, char** argv) {
         stvl_manager->PruneExpiredCells(map, T_map_body);
     });
 
-    map_server->registerPostUpdateHook([node, map_cloud_helper, height_analyzer, localizer](GridMap<Voxel> & map) {
+    map_server->registerPostUpdateHook([node, map_cloud_helper, terrain_analyzer, localizer, cycle_t0](GridMap<Voxel> & map) {
 
-        height_analyzer->update(localizer->getState().p.z(), map);
+        terrain_analyzer->update(localizer->getState().p.z() - terrain_analyzer->getGroundZOffset(), map);
 
         // /map_cloud 可视化：所有有效 Voxel，高度映射到颜色（蓝低红高，简化为白色）
         if (map_cloud_helper->hasSubscribers()) {
@@ -334,7 +341,7 @@ int main(int argc, char** argv) {
 
     auto occ_map_sub = node->create_subscription<nav_msgs::msg::OccupancyGrid>(
         "/map",
-        rclcpp::QoS(1).reliable().transient_local(),
+        rclcpp::QoS(1).transient_local().reliable(),
         [occ_map_injector](const nav_msgs::msg::OccupancyGrid& msg) {
             occ_map_injector(nav_msgs::msg::OccupancyGrid(msg), rclcpp::Time(msg.header.stamp));
         });
@@ -350,8 +357,6 @@ int main(int argc, char** argv) {
     astar_layer->set_on_post_plan(
         [astar_path_pub](finenav::PostPlanContext& ctx) -> bool {
             if (ctx.is_success) {
-                // A* 输出的栅格路径做拉普拉斯平滑
-                ctx.result_traj | finenav::SmoothPath();
                 nav_msgs::msg::Path path_msg;
                 path_msg.header = ctx.result_traj.header;
                 if (path_msg.header.frame_id.empty()) {
@@ -376,16 +381,15 @@ int main(int argc, char** argv) {
     astar_layer->bind_map_view(
         occ_grid_map_server,
         [node](const finenav::OccGrid2DMap& map) {
-            astar::OccGridMapViewConfig cfg;
-            cfg.lethal_radius       = node->get_parameter("astar_map_view.lethal_radius").as_double();
-            cfg.inflation_radius    = node->get_parameter("astar_map_view.inflation_radius").as_double();
-            cfg.cost_scaling_factor = node->get_parameter("astar_map_view.cost_scaling_factor").as_double();
-            return std::make_shared<astar::OccGridMapView>(map, cfg);
+            double lethal_radius       = node->get_parameter("astar_map_view.lethal_radius").as_double();
+            double inflation_radius    = node->get_parameter("astar_map_view.inflation_radius").as_double();
+            double cost_scaling_factor = node->get_parameter("astar_map_view.cost_scaling_factor").as_double();
+            return std::make_shared<astar::OccGridMapView>(map, 50, lethal_radius, inflation_radius, cost_scaling_factor);
         });
 
     using MppiPlanners = PlannerSet<nav2_mppi_controller::MPPIController>;
     auto my_control_layer = finenav_engine->createControlLayer<MppiPlanners>(
-        "mppi_layer", finenav::TrackingPolicy{20.0});
+        "mppi_layer", finenav::TrackingPolicy{10.0});
 
     // /cmd_vel publisher — 由 post_plan 回调驱动，在每次规划成功后取第一步速度指令
     auto cmd_vel_pub = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
@@ -393,13 +397,16 @@ int main(int argc, char** argv) {
     // [DEBUG] 发布裁减后的参考轨迹，供 RViz 可视化验证
     auto trimmed_path_pub = node->create_publisher<nav_msgs::msg::Path>("/trimmed_ref_path", 10);
 
+    // 发布 SmoothPath 平滑后（TrimByDistance 前）的完整参考路径
+    auto smooth_path_pub = node->create_publisher<nav_msgs::msg::Path>("/smooth_path", 10);
+
     Region3D map_bounds;
     {
         map_bounds = map_server->getLockedReadView()->getWindowBounds();
     }
 
     my_control_layer->set_on_pre_plan(
-    [map_bounds, map_server, localizer, node, trimmed_path_pub](finenav::PrePlanContext& ctx) -> bool {
+    [map_bounds, map_server, localizer, node, trimmed_path_pub, smooth_path_pub](finenav::PrePlanContext& ctx) -> bool {
         // 1. Advance trajectory start to the waypoint nearest to the robot
         const auto& rp = ctx.robot_state.pose.position;
         ctx.ref_traj | finenav::SeekToNearestPoint({rp.x, rp.y, rp.z});
@@ -410,9 +417,25 @@ int main(int argc, char** argv) {
         // const double max_dist = std::min(bounds_size.x(), bounds_size.y());
         // ctx.ref_traj | finenav::TrimByDistance(max_dist);
 
-        // 3. Trim waypoints that fall outside the current map AABB
-        const auto current_bounds = map_server->getLockedReadView()->getWindowBounds();
-        ctx.ref_traj | finenav::TrimByAABB(current_bounds);
+        // 3. 平滑参考轨迹（拓扑规划输出的折线做拉普拉斯平滑）
+        ctx.ref_traj | finenav::SmoothPath();
+
+        // 发布平滑后、裁剪前的完整路径
+        {
+            nav_msgs::msg::Path smooth_msg;
+            smooth_msg.header.stamp = node->now();
+            smooth_msg.header.frame_id = "map";
+            for (const auto& pose : ctx.ref_traj.poses) {
+                geometry_msgs::msg::PoseStamped ps;
+                ps.header = smooth_msg.header;
+                ps.pose = pose;
+                smooth_msg.poses.push_back(ps);
+            }
+            smooth_path_pub->publish(smooth_msg);
+        }
+
+        // 4. 只保留前方 3m 的轨迹点，MPPI 窗口够用即可
+        ctx.ref_traj | finenav::TrimByDistance(3.0);
 
         // [DEBUG] 发布裁减后的参考轨迹供 RViz 可视化验证
         {
@@ -441,12 +464,12 @@ int main(int argc, char** argv) {
             return ctx.is_success;
         });
 
-    // local_map_helper 捕获到 builder lambda，每次构造 HeightMapView 时传入
-
+    // local_map_helper 捕获到 builder lambda，每次构造 SimpleGridMapView 时传入
+    // robot_state_provider 和 should_stop_predicate 已由 FineNavEngine::createControlLayer() 自动注入。
     my_control_layer->bind_map_view(
         map_server,
-        [node, height_analyzer, local_map_helper](const GridMap<Voxel>& map) {
-            return std::make_shared<HeightMapView>(map, node, height_analyzer, local_map_helper);
+        [node, terrain_analyzer, local_map_helper](const GridMap<Voxel>& map) {
+            return std::make_shared<SimpleGridMapView>(map, node, terrain_analyzer, local_map_helper);
         });
 
 

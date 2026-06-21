@@ -19,7 +19,35 @@ SimpleGridMapView::SimpleGridMapView(
     , terrain_analyzer_(terrain_analyzer)
     , local_map_helper_(std::move(local_map_helper))
 {
-    collision_model_ = std::make_unique<finenav::OBBCollisionModel>(finenav::Vector3D(1.4, 0.8, 0.3));
+    // ── 碰撞模型参数：优先使用非对称模式（front/back/left/right/top/bottom）─────
+    // 若 YAML 中设置了 collision_model.front，则使用非对称边界；
+    // 否则回退到对称的 length/width/height 模式。
+    if (node_->has_parameter("collision_model.front")) {
+        // 非对称 OBB：直接指定 min/max 边界（机器人本体坐标系，X 前 Y 左 Z 上）
+        const double front  = node_->get_parameter("collision_model.front").as_double();
+        const double back   = node_->get_parameter("collision_model.back").as_double();
+        const double left   = node_->get_parameter("collision_model.left").as_double();
+        const double right  = node_->get_parameter("collision_model.right").as_double();
+        const double top    = node_->get_parameter("collision_model.top").as_double();
+        const double bottom = node_->get_parameter("collision_model.bottom").as_double();
+
+        collision_model_ = std::make_unique<finenav::OBBCollisionModel>(
+            finenav::Vector3D(-back, -right, -bottom),
+            finenav::Vector3D(front, left, top));
+    } else {
+        // 对称 OBB（向后兼容）
+        if (!node_->has_parameter("collision_model.length")) {
+            node_->declare_parameter<double>("collision_model.length", 1.4);
+            node_->declare_parameter<double>("collision_model.width",  0.8);
+            node_->declare_parameter<double>("collision_model.height", 0.0);
+        }
+        const double length = node_->get_parameter("collision_model.length").as_double();
+        const double width  = node_->get_parameter("collision_model.width").as_double();
+        const double height = node_->get_parameter("collision_model.height").as_double();
+
+        collision_model_ = std::make_unique<finenav::OBBCollisionModel>(
+            finenav::Vector3D(length, width, height));
+    }
 }
 
 bool SimpleGridMapView::isTrackingUnknown() const {
@@ -38,7 +66,7 @@ bool SimpleGridMapView::isCollision(float x, float y, float theta) const {
         return true;
     }
     if (pose_cost >= possible_collision_cost) {
-        return collision_model_->checkCollision(pose, CollisionRule());
+        return collision_model_->checkCollisionEdge(pose, CollisionRule());
     }
     return false;
 }
@@ -53,7 +81,7 @@ float SimpleGridMapView::getRadius() const {
 
 float SimpleGridMapView::costAtPose(float x, float y, float theta) const {
     finenav::Pose pose = createPose2D(x, y, theta);
-    return collision_model_->checkCost(pose,[this](const finenav::Position3D& pos) {
+    return collision_model_->checkCostEdge(pose,[this](const finenav::Position3D& pos) {
         return this->getCost(pos);
     });
 }

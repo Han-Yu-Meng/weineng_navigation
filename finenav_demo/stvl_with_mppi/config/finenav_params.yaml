@@ -15,10 +15,12 @@ hello_finenav/finenav_localizer:
   ros__parameters:
     # 是否透传
     passthrough: true
+    # 是否强制 2D 输出（getState/getStateAt 的 z/roll/pitch 归零）
+    force_2d_mode: true
     # ESKF 更新循环频率 [Hz]
     update_rate_hz: 50.0
     # 最大可容忍的观测延迟 [s]
-    max_delay_sec: 0.18
+    max_delay_sec: 0.12
     # 位姿观测复用次数（R 矩阵按此倍数缩放）
     pose_smoothing_steps: 4
     # 速度观测复用次数
@@ -60,28 +62,45 @@ hello_finenav/finenav_navigator:
 # ══════════════════════════════════════════════════════════════════════════════
 hello_finenav:
   ros__parameters:
-    astar_map_view:
-      lethal_radius: 0.25        # 硬膨胀半径 [m]，范围内 cost=253 不可通行
-      inflation_radius: 2.0     # 软膨胀外边界半径 [m]
-      cost_scaling_factor: 0.2 # 软膨胀指数衰减系数，越大衰减越快
     terrain_analysis:
       cost_scaling_factor: 0.5
       robot_height: 1.0
-      max_gradient: 0.08
+      max_gradient: 0.12
+      nan_fill_radius: 1.5
+      # ── Simple Z-threshold mode ──────────────────────────────────────
+      # 设为 true 则用简单的 Z 高度阈值判断障碍物（忽略坡度等复杂分析）。
+      # 每个栅格柱上的最高 voxel z 超过 robot_pose_z + z_obstacle_threshold 即为障碍。
+      use_simple_z_threshold: true
+      z_obstacle_threshold: 0.03    # [m] 高于机器人当前 Z 多少即视为障碍
     stvl_manager:
-      decay_time_sec: 0.5
-      decay_time_fov_sec: 0.5
+      decay_time_sec: 2.0
+      decay_time_fov_sec: 2.0
       min_range: 0.0
       max_range: 50.0
       min_angle: 0.0
       max_angle: 1.047 # M_PI / 3.0
+    collision_model:
+      # ── 非对称 OBB 模式（推荐用于差速机器人等非对称构型）───────────────────
+      # 机器人本体坐标系：X=前, Y=左, Z=上。所有值均为正数，表示从机器人中心
+      # 到对应方向边缘的距离。当 front 参数存在时优先使用非对称模式，
+      # 否则回退到对称的 length/width/height。
+      front:  1.1   # [m] 机器人中心 → 前方边缘 (+X)
+      back:   0.3   # [m] 机器人中心 → 后方边缘 (-X，取正)
+      left:   0.4   # [m] 机器人中心 → 左侧边缘 (+Y)
+      right:  0.4   # [m] 机器人中心 → 右侧边缘 (-Y，取正)
+      top:    0.0   # [m] 机器人中心 → 上方边缘 (+Z)
+      bottom: 0.0   # [m] 机器人中心 → 下方边缘 (-Z，取正)
+      # ── 对称 OBB 模式（向后兼容）───────────────────────────────────────────
+      length: 1.4  # OBB 长轴 [m]，对应机器人前后方向
+      width:  1.0  # OBB 短轴 [m]，对应机器人左右方向
+      height: 0.0  # OBB 高度 [m]，0 表示 2D 模型
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Astar Planner — 空地图模式
+# AstarPathSearch（A* 全局路径搜索）
 # 完整节点路径: /hello_finenav/astar_layer
 # ══════════════════════════════════════════════════════════════════════════════
-/hello_finenav/astar_layer:
+hello_finenav/astar_layer:
   ros__parameters:
     astar_planner:
-      use_empty_map: true              # 使用完全空白地图，不依赖 /map
-      empty_map_resolution: 0.05       # 空地图栅格分辨率 [m]
+      use_empty_map: true
+      empty_map_resolution: 0.05

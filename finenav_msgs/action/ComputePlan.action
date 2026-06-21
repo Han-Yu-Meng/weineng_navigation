@@ -1,9 +1,0 @@
-# Request
-geometry_msgs/Pose goal
-string planner_id
----
-# Result
-builtin_interfaces/Duration planning_time
----
-# Feedback
-
