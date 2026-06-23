@@ -62,6 +62,7 @@ private:
     std::vector<double> max_accel_;
     std::vector<double> max_decel_;
     double control_rate_;
+    bool publish_on_idle_{true};
 };
 
 }  // namespace velocity_smoother

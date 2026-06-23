@@ -33,11 +33,12 @@ VelocitySmoother::VelocitySmoother(const rclcpp::NodeOptions& options)
     RCLCPP_INFO(get_logger(),
         "VelocitySmoother started. control_rate=%.1f Hz, "
         "max_vel=[%.2f, %.2f, %.2f], max_accel=[%.2f, %.2f, %.2f], "
-        "timeout=%.1f s",
+        "timeout=%.1f s, publish_on_idle=%s",
         control_rate_,
         max_velocity_[0], max_velocity_[1], max_velocity_[2],
         max_accel_[0], max_accel_[1], max_accel_[2],
-        velocity_timeout_);
+        velocity_timeout_,
+        publish_on_idle_ ? "true" : "false");
 }
 
 void VelocitySmoother::declare_parameters() {
@@ -56,6 +57,9 @@ void VelocitySmoother::declare_parameters() {
     // Internal control loop frequency
     declare_parameter("control_rate", 20.0);
 
+    // Idle publishing mode — false: stop publishing /cmd_vel when no /cmd_vel_raw is active
+    declare_parameter("publish_on_idle", true);
+
     // Re-read parameters (support live tuning via `ros2 param set`)
     auto cb = [this](const std::vector<rclcpp::Parameter>&) {
         max_velocity_       = get_parameter("max_velocity").as_double_array();
@@ -65,6 +69,7 @@ void VelocitySmoother::declare_parameters() {
         max_accel_          = get_parameter("max_accel").as_double_array();
         max_decel_          = get_parameter("max_decel").as_double_array();
         control_rate_       = get_parameter("control_rate").as_double();
+        publish_on_idle_    = get_parameter("publish_on_idle").as_bool();
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;
         return result;
@@ -78,6 +83,7 @@ void VelocitySmoother::declare_parameters() {
     max_accel_          = get_parameter("max_accel").as_double_array();
     max_decel_          = get_parameter("max_decel").as_double_array();
     control_rate_       = get_parameter("control_rate").as_double();
+    publish_on_idle_    = get_parameter("publish_on_idle").as_bool();
 
     // Register callback for live parameter updates
     [[maybe_unused]] auto cb_handle = add_on_set_parameters_callback(cb);
@@ -102,8 +108,15 @@ void VelocitySmoother::timerCallback() {
         cmd_time = last_raw_cmd_time_;
     }
 
-    // ── Timeout: if no command received or last command is too old, decelerate to zero
-    if (!has_command || (now() - cmd_time).seconds() > velocity_timeout_) {
+    const bool timed_out = !has_command || (now() - cmd_time).seconds() > velocity_timeout_;
+
+    // ── Idle mode: if publish_on_idle_ is false, skip publishing entirely
+    if (timed_out && !publish_on_idle_) {
+        return;
+    }
+
+    // ── Timeout: no active command → decelerate to zero (only reached when publish_on_idle_ is true)
+    if (timed_out) {
         target.linear.x  = 0.0;
         target.linear.y  = 0.0;
         target.linear.z  = 0.0;
