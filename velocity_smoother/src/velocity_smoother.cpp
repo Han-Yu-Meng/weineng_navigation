@@ -65,6 +65,9 @@ void VelocitySmoother::declare_parameters() {
         max_accel_          = get_parameter("max_accel").as_double_array();
         max_decel_          = get_parameter("max_decel").as_double_array();
         control_rate_       = get_parameter("control_rate").as_double();
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        return result;
     };
 
     // Initial load
@@ -77,7 +80,7 @@ void VelocitySmoother::declare_parameters() {
     control_rate_       = get_parameter("control_rate").as_double();
 
     // Register callback for live parameter updates
-    set_on_parameters_set_callback(cb);
+    [[maybe_unused]] auto cb_handle = add_on_set_parameters_callback(cb);
 }
 
 void VelocitySmoother::cmdVelRawCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {

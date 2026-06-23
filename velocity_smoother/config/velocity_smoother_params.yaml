@@ -1,9 +1,9 @@
 velocity_smoother:
   ros__parameters:
-    max_velocity: [2.0, 0.0, 0.5]
-    min_velocity: [-0.50, 0.0, -0.8]
+    max_velocity: [0.6, 0.0, 0.5]
+    min_velocity: [0.0, 0.0, -0.5]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [0.4, 0.0, 0.4]
-    max_decel: [-20.0, 0.0, -2.0]
+    max_accel: [0.1, 0.0, 0.1]
+    max_decel: [-0.4, 0.0, -0.4]
     control_rate: 20.0
