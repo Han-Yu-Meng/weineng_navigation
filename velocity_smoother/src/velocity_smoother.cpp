@@ -159,17 +159,18 @@ double VelocitySmoother::applyAccelLimit(
     }
 
     const double dv = target - current;
+    if (dv == 0.0) return current;
+
+    // 按速率大小判断加速/减速，而非 dv 的正负：
+    //   |target| > |current| → 加速 (速率增大) → max_accel
+    //   |target| < |current| → 减速 (速率减小) → max_decel
+    const double rate = (std::fabs(target) > std::fabs(current)) ? accel : std::fabs(decel);
+    const double step = rate * dt;
 
     if (dv > 0.0) {
-        // Accelerating
-        const double step = accel * dt;
         return current + std::min(dv, step);
-    } else if (dv < 0.0) {
-        // Decelerating — decel is negative, e.g. -2.0
-        const double step = std::fabs(decel) * dt;
-        return current + std::max(dv, -step);
     } else {
-        return current;
+        return current + std::max(dv, -step);
     }
 }
 
