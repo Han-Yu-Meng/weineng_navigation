@@ -10,11 +10,12 @@
     <BehaviorTree ID="NavigateToPose">
         <Sequence name="TrackThenStop">
             <ReactiveFallback name="NavigateOrSucceed">
+                <!-- 阶段1: 仅检查位置到达（yaw 由后续节点专门处理） -->
                 <IsGoalReached  robot_pose="{robot_pose}"
                                 robot_twist="{robot_twist}"
                                 goal="{goal}"
                                 tolerance="0.25"
-                                yaw_tolerance="0.75"
+                                yaw_tolerance="0.0"
                                 speed_tolerance="0.5"/>
                 <Sequence name="RouteThenMppi">
                     <ComputePlan action_name="/hello_finenav/astar_layer"
@@ -34,7 +35,14 @@
                     </RetryUntilSuccessful>
                 </Sequence>
             </ReactiveFallback>
-            <!-- ReactiveFallback 返回 SUCCESS（IsGoalReached触发或MPPI到达目标）后，发布零速 -->
+            <!-- 阶段2: 位置到达后，旋转对齐 goal_pose 的朝向
+                 RotateShim 在距离 goal < close_to_goal_threshold 时自动使用 goal 朝向 -->
+            <ForceSuccess>
+                <ComputePlan action_name="/hello_finenav/mppi_layer"
+                             goal="{goal}"
+                             planner_id="finenav_rotate_shim"/>
+            </ForceSuccess>
+            <!-- 阶段3: 安全停止 -->
             <PublishZeroCmdVel  topic_name="/cmd_vel"/>
         </Sequence>
     </BehaviorTree>
