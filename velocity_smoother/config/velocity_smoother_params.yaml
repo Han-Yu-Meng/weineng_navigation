@@ -7,4 +7,4 @@ velocity_smoother:
     max_accel: [0.1, 0.0, 0.1]
     max_decel: [-0.2, 0.0, -0.2]
     control_rate: 10.0
-    publish_on_idle: false
+    publish_on_idle: false #false

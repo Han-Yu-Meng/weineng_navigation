@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
         "mppi_layer", finenav::TrackingPolicy{10.0});
 
     // /cmd_vel publisher — 由 post_plan 回调驱动，在每次规划成功后取第一步速度指令
-    auto cmd_vel_pub = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel_raw", 10);
+    auto cmd_vel_pub = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
     // [DEBUG] 发布裁减后的参考轨迹，供 RViz 可视化验证
     auto trimmed_path_pub = node->create_publisher<nav_msgs::msg::Path>("/trimmed_ref_path", 10);

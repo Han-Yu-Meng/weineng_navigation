@@ -63,6 +63,6 @@ def generate_launch_description():
     ld = LaunchDescription()
     ld.add_action(start_hello_finenav)
     ld.add_action(start_goal_pose_bridge)
-    ld.add_action(start_velocity_smoother)
+    # ld.add_action(start_velocity_smoother)
 
     return ld
