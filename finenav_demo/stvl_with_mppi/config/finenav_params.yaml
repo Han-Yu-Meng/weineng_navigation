@@ -87,15 +87,15 @@ hello_finenav:
       # 机器人本体坐标系：X=前, Y=左, Z=上。所有值均为正数，表示从机器人中心
       # 到对应方向边缘的距离。当 front 参数存在时优先使用非对称模式，
       # 否则回退到对称的 length/width/height。
-      front:  0.3   # [m] 机器人中心 → 前方边缘 (+X) # TODO: 这个得改的
-      back:   0.3   # [m] 机器人中心 → 后方边缘 (-X，取正)
-      left:   0.3   # [m] 机器人中心 → 左侧边缘 (+Y)
-      right:  0.3   # [m] 机器人中心 → 右侧边缘 (-Y，取正)
+      front:  0.2   # [m] 机器人中心 → 前方边缘 (+X) # TODO: 这个得改的
+      back:   0.2   # [m] 机器人中心 → 后方边缘 (-X，取正)
+      left:   0.2   # [m] 机器人中心 → 左侧边缘 (+Y)
+      right:  0.2   # [m] 机器人中心 → 右侧边缘 (-Y，取正)
       top:    0.0   # [m] 机器人中心 → 上方边缘 (+Z)
       bottom: 0.0   # [m] 机器人中心 → 下方边缘 (-Z，取正)
       # ── 对称 OBB 模式（向后兼容）───────────────────────────────────────────
-      length: 0.6  # OBB 长轴 [m]，对应机器人前后方向
-      width:  0.6  # OBB 短轴 [m]，对应机器人左右方向
+      length: 0.4  # OBB 长轴 [m]，对应机器人前后方向
+      width:  0.4  # OBB 短轴 [m]，对应机器人左右方向
       height: 0.0  # OBB 高度 [m]，0 表示 2D 模型
     occ_grid_2d:
       occupancy_threshold: 50  # 占据阈值 [0,100]，>= 此值视为障碍
@@ -124,4 +124,5 @@ hello_finenav/mppi_layer:
     finenav_rotate_shim:
       forward_sampling_distance: 0.5   # [m] 在前方多远采样目标朝向
       angular_speed: 0.6               # [rad/s] 原地旋转角速度
-      angular_dist_threshold: 0.3 # (15 degrees)    # [rad] 朝向误差阈值
+      angular_dist_threshold: 0.15      # [rad] 朝向误差阈值 
+      close_to_goal_threshold: 0.5     # [m] 距离 goal 多近时直接对齐 goal 朝向
