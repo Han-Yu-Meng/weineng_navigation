@@ -8,7 +8,19 @@
 
     <!-- 主导航行为树：支持动态跟随抢占普通导航 -->
     <BehaviorTree ID="NavigateToPose">
+        <ReactiveFallback name="NavigationOrStop">
+            <!-- 检查导航是否启用，如果停止则返回 FAILURE -->
+            <NavigationControl/>
+            <Sequence name="StopAndPublishIDLE">
+                <!-- 导航已停止，发布零速 -->
+                <PublishZeroCmdVel topic_name="/cmd_vel"/>
+                <!-- 发布空闲状态 -->
+                <PublishNavigationState topic_name="/navigation_state" state="IDLE"/>
+            </Sequence>
+        </ReactiveFallback>
         <Sequence name="TrackThenStop">
+            <!-- 发布导航运行状态 -->
+            <PublishNavigationState topic_name="/navigation_state" state="NAVIGATING"/>
             <ReactiveFallback name="NavigateOrSucceed">
                 <!-- 阶段1: 仅检查位置到达（yaw 由后续节点专门处理） -->
                 <IsGoalReached  robot_pose="{robot_pose}"
@@ -29,9 +41,13 @@
                     </ForceSuccess>
                     <!-- MPPI 跟踪失败时仅重试 MPPI，不重新规划全局路径 -->
                     <RetryUntilSuccessful num_attempts="-1">
-                        <ComputePlan action_name="/hello_finenav/mppi_layer"
-                                     goal="{goal}"
-                                     planner_id="finenav_mppi_controller"/>
+                        <Sequence name="MppiWithState">
+                            <!-- 发布被障碍物遮挡 MPPI 失败状态 -->
+                            <PublishNavigationState topic_name="/navigation_state" state="MPPI_OBSTACLE_BLOCKED"/>
+                            <ComputePlan action_name="/hello_finenav/mppi_layer"
+                                         goal="{goal}"
+                                         planner_id="finenav_mppi_controller"/>
+                        </Sequence>
                     </RetryUntilSuccessful>
                 </Sequence>
             </ReactiveFallback>
@@ -43,7 +59,9 @@
                              planner_id="finenav_rotate_shim"/>
             </ForceSuccess>
             <!-- 阶段3: 安全停止 -->
-            <PublishZeroCmdVel  topic_name="/cmd_vel"/>
+            <PublishZeroCmdVel topic_name="/cmd_vel"/>
+            <!-- 发布导航成功状态 -->
+            <PublishNavigationState topic_name="/navigation_state" state="GOAL_REACHED"/>
         </Sequence>
     </BehaviorTree>
 </root>

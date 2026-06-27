@@ -50,6 +50,7 @@ hello_finenav/finenav_navigator:
     # finenav_navigator 的条件插件安装在 lib/plugins/
     plugins:
       - "finenav_navigator/lib/plugins"
+      - "finenav_demo/lib/plugins"
     # 行为树 XML 文件目录（格式: "package_name/subfolder"）
     # navigate_to_pose.xml 安装在 share/finenav_demo/behavior_tree/
     behavior_trees:
