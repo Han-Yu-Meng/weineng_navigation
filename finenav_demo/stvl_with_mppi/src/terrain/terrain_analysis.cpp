@@ -74,7 +74,7 @@ void TerrainAnalyzer::update(float robot_pose_z, const finenav::GridMap<Voxel>& 
     
     auto& clk = *node_->get_clock();
     RCLCPP_INFO_THROTTLE(node_->get_logger(), clk, 2000,
-        "\n[TerrainAnalyzer] timing (map %zux%zu @ %.2fm/cell)\n"
+        "\n[TerrainAnalyzer] timing (map %dx%d @ %.2fm/cell)\n"
         "  TerrainAnalysis : %7.2f ms\n"
         "  MapInflation    : %7.2f ms\n"
         "  publishMaps     : %7.2f ms\n"
@@ -104,10 +104,10 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
     int sizeX_max = map.getMaxIndex().x();
     int sizeY_min = map.getMinIndex().y();
     int sizeY_max = map.getMaxIndex().y();
-    size_t size_x      = map.getSize().x();
-    size_t size_y      = map.getSize().y();
-    size_t half_size_x = size_x / 2;
-    size_t half_size_y = size_y / 2;
+    int size_x      = map.getSize().x();
+    int size_y      = map.getSize().y();
+    int half_size_x = size_x / 2;
+    int half_size_y = size_y / 2;
 
     ground_array_ = Eigen::ArrayXXf::Constant(size_x, size_y, NAN);
 
@@ -135,8 +135,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
                     }
                 }
 
-                const size_t px = static_cast<size_t>(x + static_cast<int>(half_size_x));
-                const size_t py = static_cast<size_t>(y + static_cast<int>(half_size_y));
+                const int px = x + half_size_x;
+                const int py = y + half_size_y;
 
                 if (std::isfinite(max_z) && (max_z - robot_pose_z) > z_obstacle_threshold_) {
                     passability_image_.at<uchar>(py, px) = 254;  // obstacle
@@ -151,8 +151,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
         ApplyGroundMeanFilter(ground_array_, 3);
 
         // Fill NaN cells near the map center with robot_pose_z
-        for (size_t x = 0; x < size_x; ++x) {
-            for (size_t y = 0; y < size_y; ++y) {
+        for (int x = 0; x < size_x; ++x) {
+            for (int y = 0; y < size_y; ++y) {
                 if (std::isnan(ground_array_(x, y))) {
                     double dist_to_center = std::hypot(
                         static_cast<double>(x) - static_cast<double>(half_size_x),
@@ -172,8 +172,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
             const int map_w = global_map_->info.width;
             const int map_h = global_map_->info.height;
 
-            for (size_t x = 0; x < size_x; ++x) {
-                for (size_t y = 0; y < size_y; ++y) {
+            for (int x = 0; x < size_x; ++x) {
+                for (int y = 0; y < size_y; ++y) {
                     finenav::Index idx(
                         static_cast<int>(x) - static_cast<int>(half_size_x),
                         static_cast<int>(y) - static_cast<int>(half_size_y),
@@ -223,15 +223,15 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
             } else {
                 nearest_ground = NAN;
             }
-            ground_array_(x + static_cast<int>(half_size_x), y + static_cast<int>(half_size_y)) = nearest_ground;
+            ground_array_(x + half_size_x, y + half_size_y) = nearest_ground;
         }
     }
 
     ApplyGroundMeanFilter(ground_array_, 3);
 
     // 将地图中心附近一定范围内仍为 NAN 的栅格填充为 robot_pose_z
-    for (size_t x = 0; x < size_x; ++x) {
-        for (size_t y = 0; y < size_y; ++y) {
+    for (int x = 0; x < size_x; ++x) {
+        for (int y = 0; y < size_y; ++y) {
             if (std::isnan(ground_array_(x, y))) {
                 double dist_to_center = std::hypot(
                     static_cast<double>(x) - static_cast<double>(half_size_x),
@@ -243,8 +243,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
         }
     }
 
-    for (size_t x = 0; x < size_x; ++x) {
-        for (size_t y = 0; y < size_y; ++y) {
+    for (int x = 0; x < size_x; ++x) {
+        for (int y = 0; y < size_y; ++y) {
             int dx[4] = {0, 1, 0, -1};
             int dy[4] = {1, 0, -1, 0};
 
@@ -254,8 +254,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
                 for (int i = 0; i < 4; ++i) {
                     int nx = x + dx[i];
                     int ny = y + dy[i];
-                    if (nx < 0 || nx > static_cast<int>(size_x) - 1 ||
-                        ny < 0 || ny > static_cast<int>(size_y) - 1) continue;
+                    if (nx < 0 || nx > size_x - 1 ||
+                        ny < 0 || ny > size_y - 1) continue;
                     float neighbor_ground = ground_array_(nx, ny);
                     if (!std::isnan(neighbor_ground)) {
                         if (fabs(current_ground - neighbor_ground) > max_gradient_) {
@@ -277,8 +277,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
         const int map_w = global_map_->info.width;
         const int map_h = global_map_->info.height;
 
-        for (size_t x = 0; x < size_x; ++x) {
-            for (size_t y = 0; y < size_y; ++y) {
+        for (int x = 0; x < size_x; ++x) {
+            for (int y = 0; y < size_y; ++y) {
                 finenav::Index idx(
                     static_cast<int>(x) - static_cast<int>(half_size_x),
                     static_cast<int>(y) - static_cast<int>(half_size_y),
@@ -361,10 +361,10 @@ cv::Mat TerrainAnalyzer::DistanceTransform() {
 void TerrainAnalyzer::publishMaps(const finenav::GridMap<Voxel>& map) {
     if (!node_) return;
 
-    const size_t size_x      = map.getSize().x();
-    const size_t size_y      = map.getSize().y();
-    const size_t half_size_x = size_x / 2;
-    const size_t half_size_y = size_y / 2;
+    const int size_x      = map.getSize().x();
+    const int size_y      = map.getSize().y();
+    const int half_size_x = size_x / 2;
+    const int half_size_y = size_y / 2;
     const auto   stamp       = node_->now();
 
     // 像素 (px, py) → 地图 Index (px - half_size_x, py - half_size_y, 0)
@@ -375,8 +375,8 @@ void TerrainAnalyzer::publishMaps(const finenav::GridMap<Voxel>& map) {
     if (passability_helper_) {
         passability_helper_->reserve(size_x * size_y);
         passability_helper_->reserve(size_x * size_y);
-        for (size_t px = 0; px < size_x; ++px) {
-            for (size_t py = 0; py < size_y; ++py) {
+        for (int px = 0; px < size_x; ++px) {
+            for (int py = 0; py < size_y; ++py) {
                 finenav::Index idx(
                     static_cast<int>(px) - static_cast<int>(half_size_x),
                     static_cast<int>(py) - static_cast<int>(half_size_y),
@@ -406,8 +406,8 @@ void TerrainAnalyzer::publishMaps(const finenav::GridMap<Voxel>& map) {
     // 颜色编码: cost 0（低代价）→ 绿色; cost 254（高代价/障碍）→ 红色
     if (costmap_helper_) {
         costmap_helper_->reserve(size_x * size_y);
-        for (size_t px = 0; px < size_x; ++px) {
-            for (size_t py = 0; py < size_y; ++py) {
+        for (int px = 0; px < size_x; ++px) {
+            for (int py = 0; py < size_y; ++py) {
                 finenav::Index idx(
                     static_cast<int>(px) - static_cast<int>(half_size_x),
                     static_cast<int>(py) - static_cast<int>(half_size_y),
@@ -440,8 +440,8 @@ void TerrainAnalyzer::publishMaps(const finenav::GridMap<Voxel>& map) {
         ground_helper_->reserve(size_x * size_y);
         float z_min = std::numeric_limits<float>::max();
         float z_max = std::numeric_limits<float>::lowest();
-        for (size_t px = 0; px < size_x; ++px) {
-            for (size_t py = 0; py < size_y; ++py) {
+        for (int px = 0; px < size_x; ++px) {
+            for (int py = 0; py < size_y; ++py) {
                 float z = ground_array_(px, py);
                 if (!std::isnan(z)) {
                     z_min = std::min(z_min, z);
@@ -460,8 +460,8 @@ void TerrainAnalyzer::publishMaps(const finenav::GridMap<Voxel>& map) {
                     static_cast<uint8_t>(255 * g),
                     static_cast<uint8_t>(255 * b)};
         };
-        for (size_t px = 0; px < size_x; ++px) {
-            for (size_t py = 0; py < size_y; ++py) {
+        for (int px = 0; px < size_x; ++px) {
+            for (int py = 0; py < size_y; ++py) {
                 float z = ground_array_(px, py);
                 if (std::isnan(z)) continue;
                 finenav::Index idx(
