@@ -18,6 +18,25 @@ target_include_directories(terrain_lib PUBLIC
         ${PCL_INCLUDE_DIRS}
 )
 
+# BT Plugin: PublishNavigationState
+add_library(finenav_publish_navigation_state SHARED
+    src/bt_plugins/publish_navigation_state.cpp
+)
+ament_target_dependencies(finenav_publish_navigation_state ${dependencies})
+target_include_directories(finenav_publish_navigation_state PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+target_compile_definitions(finenav_publish_navigation_state PRIVATE BT_PLUGIN_EXPORT)
+
+# BT Plugin: NavigationControl
+add_library(finenav_navigation_control SHARED
+    src/bt_plugins/navigation_control.cpp
+)
+ament_target_dependencies(finenav_navigation_control ${dependencies})
+target_include_directories(finenav_navigation_control PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+target_compile_definitions(finenav_navigation_control PRIVATE BT_PLUGIN_EXPORT)
 
 add_executable(hello_finenav src/apps/hello_finenav.cpp)
 target_link_libraries(hello_finenav terrain_lib)
@@ -29,6 +48,12 @@ ament_target_dependencies(goal_pose_bridge_node ${dependencies})
 install(TARGETS terrain_lib
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+
+install(TARGETS finenav_publish_navigation_state finenav_navigation_control
+        ARCHIVE DESTINATION lib/plugins
+        LIBRARY DESTINATION lib/plugins
         RUNTIME DESTINATION bin
 )
 

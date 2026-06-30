@@ -27,6 +27,7 @@ set(dependencies
         nav_msgs
         geometry_msgs
         sensor_msgs
+        std_srvs
         tf2
         tf2_eigen
         tf2_geometry_msgs

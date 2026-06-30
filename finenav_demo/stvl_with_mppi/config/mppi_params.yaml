@@ -32,24 +32,24 @@
     finenav_mppi_controller:
 
       # ── 轨迹优化器基础参数 ─────────────────────────────────────────────────
-      time_steps: 35          # 每条候选轨迹的时间步数
+      time_steps: 70          # 每条候选轨迹的时间步数
       model_dt: 0.1          # 单步时长 (s)，确保 controller_period == model_dt
-      batch_size: 2000       # 每次迭代的采样轨迹数
+      batch_size: 3000       # 每次迭代的采样轨迹数
       iteration_count: 1      # 每个控制周期内的优化迭代次数（实时性考虑设为 1）
-      temperature: 0.45 # 0.35        # 0→ 只取最优轨迹；很大 → 近均匀平均
+      temperature: 0.35 # 0.35        # 0→ 只取最优轨迹；很大 → 近均匀平均
       gamma: 0.015            # 控制输入能量正则化系数
       motion_model: "DiffDrive"  # 运动模型: DiffDrive | Omni | Ackermann
 
       # ── 速度约束 ──────────────────────────────────────────────────────────
-      vx_max: 0.6             # 最大前向速度 (m/s)
+      vx_max: 0.4             # 最大前向速度 (m/s)
       vx_min: 0.0         # 最小前向速度（负值允许倒退）
       vy_max: 0.0             # 最大横向速度（差速底盘设为 0）
       wz_max: 0.4            # 最大角速度 (rad/s)
 
       # ── 噪声采样标准差 ────────────────────────────────────────────────────
-      vx_std: 0.2             # vx 采样标准差
+      vx_std: 0.25             # vx 采样标准差
       vy_std: 0.001             # vy 采样标准差
-      wz_std: 0.2             # wz 采样标准差
+      wz_std: 0.25             # wz 采样标准差
 
       # ══════════════════════════════════════════════════════════════════════
       # Critic 参数
@@ -67,20 +67,20 @@
         enabled: true
         cost_power: 1
         cost_weight: 5.0
-        threshold_to_consider: 0.5   # 距目标 ≤ 此距离时激活 (m)
+        threshold_to_consider: 0.8   # 距目标 ≤ 此距离时激活 (m)
 
       # GoalAngleCritic：距目标足够近时，惩罚朝向与目标姿态偏差
       GoalAngleCritic:
-        enabled: true
+        enabled: false
         cost_power: 1
         cost_weight: 3.0
-        threshold_to_consider: 0.5
+        threshold_to_consider: 0.8
 
       # PreferForwardCritic：鼓励前进，抑制倒退
       PreferForwardCritic:
         enabled: false            # 差速底盘若无需倒退可开启
         cost_power: 1
-        cost_weight: 5.0
+        cost_weight: 50.0
         threshold_to_consider: 0.5
 
       # CostCritic：直接使用 costmap 代价进行避障惩罚（推荐启用）
@@ -125,7 +125,7 @@
         cost_weight: 2.0
         max_path_occupancy_ratio: 0.07
         trajectory_point_step: 4
-        threshold_to_consider: 0.5
+        threshold_to_consider: 0.8
         offset_from_furthest: 20
         use_path_orientations: false
 
@@ -135,7 +135,7 @@
         cost_power: 1
         cost_weight: 5.0
         offset_from_furthest: 15
-        threshold_to_consider: 0.5
+        threshold_to_consider: 0.8
 
       # PathAngleCritic：惩罚与全局路径前方点夹角过大的轨迹
       # 注意：PathAngleCritic.mode 在 finenav_mppi_controller 中尚未实现
@@ -144,7 +144,7 @@
         cost_power: 1
         cost_weight: 10.0
         offset_from_furthest: 15
-        threshold_to_consider: 0.5
+        threshold_to_consider: 1.5
         max_angle_to_furthest: 1.0
         forward_preference: false    # true=只考虑前向角度; false=同时评估前向与倒车方向（需要 vx_min < 0）
 

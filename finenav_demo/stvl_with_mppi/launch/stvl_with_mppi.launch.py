@@ -46,8 +46,23 @@ def generate_launch_description():
         ]
     )
 
+    velocity_smoother_pkg_dir = get_package_share_directory('velocity_smoother')
+    smoother_params_file = os.path.join(
+        velocity_smoother_pkg_dir,
+        'config',
+        'velocity_smoother_params.yaml'
+    )
+
+    start_velocity_smoother = Node(
+        package='velocity_smoother',
+        executable='velocity_smoother_node',
+        output='screen',
+        parameters=[smoother_params_file],
+    )
+
     ld = LaunchDescription()
     ld.add_action(start_hello_finenav)
     ld.add_action(start_goal_pose_bridge)
+    # ld.add_action(start_velocity_smoother)
 
     return ld
