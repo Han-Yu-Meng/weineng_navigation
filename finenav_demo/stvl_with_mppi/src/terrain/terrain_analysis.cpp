@@ -20,8 +20,8 @@ TerrainAnalyzer::TerrainAnalyzer(
     , ground_helper_(std::move(ground_helper))
 {
     const auto map_ro = map_server->getLockedReadView();
-    passability_image_ = cv::Mat::zeros(map_ro->getSize().x(), map_ro->getSize().y(), CV_8UC1);
-    costmap_image_     = cv::Mat::zeros(map_ro->getSize().x(), map_ro->getSize().y(), CV_8UC1);
+    passability_image_ = cv::Mat::zeros(map_ro->getSize().y(), map_ro->getSize().x(), CV_8UC1);
+    costmap_image_     = cv::Mat::zeros(map_ro->getSize().y(), map_ro->getSize().x(), CV_8UC1);
     cached_resolution_ = map_ro->getResolution();
 
     node_->declare_parameter<double>("terrain_analysis.cost_scaling_factor", 0.5);
@@ -135,8 +135,8 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
                     }
                 }
 
-                const size_t px = x + half_size_x;
-                const size_t py = y + half_size_y;
+                const size_t px = static_cast<size_t>(x + static_cast<int>(half_size_x));
+                const size_t py = static_cast<size_t>(y + static_cast<int>(half_size_y));
 
                 if (std::isfinite(max_z) && (max_z - robot_pose_z) > z_obstacle_threshold_) {
                     passability_image_.at<uchar>(py, px) = 254;  // obstacle
@@ -223,7 +223,7 @@ void TerrainAnalyzer::TerrainAnalysis(float robot_pose_z, const finenav::GridMap
             } else {
                 nearest_ground = NAN;
             }
-            ground_array_(x + half_size_x, y + half_size_y) = nearest_ground;
+            ground_array_(x + static_cast<int>(half_size_x), y + static_cast<int>(half_size_y)) = nearest_ground;
         }
     }
 
