@@ -35,6 +35,7 @@ def generate_launch_description():
             finenav_params_file,
             obs_cov_file,
         ],
+        prefix=['gdb -batch -ex "run" -ex "bt" --args'],
     )
 
     start_goal_pose_bridge = Node(
