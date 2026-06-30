@@ -44,6 +44,7 @@ ament_target_dependencies(hello_finenav ${dependencies})
 
 add_executable(goal_pose_bridge_node src/apps/goal_pose_bridge_node.cpp)
 ament_target_dependencies(goal_pose_bridge_node ${dependencies})
+target_link_libraries(goal_pose_bridge_node ${std_srvs_LIBRARIES})
 
 install(TARGETS terrain_lib
         ARCHIVE DESTINATION lib

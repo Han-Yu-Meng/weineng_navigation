@@ -4,5 +4,5 @@ cd ./FineNav-Engine/
 git checkout abf75d0
 
 # 删除FineNav-Engine原有的demo
-rm -rf ./finenav_demo/
-
+cd ./finenav_demo/
+touch COLCON_IGNORE

@@ -11,6 +11,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_srvs/srv/trigger.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include "finenav_msgs/action/navigate_to_pose.hpp"
 #include "finenav_msgs/msg/trajectory.hpp"
@@ -94,6 +96,56 @@ public:
             mppi_plan_topic_, 10,
             std::bind(&GoalPoseLinePathTestNode::mppiPlanCallback, this, std::placeholders::_1));
 
+        // ── 发布 /navigation_enabled 话题（transient_local），供 BT 中 NavigationControl 订阅
+        nav_enabled_pub_ = this->create_publisher<std_msgs::msg::Bool>(
+            "/navigation_enabled", rclcpp::QoS(1).transient_local());
+        {
+            std_msgs::msg::Bool enabled_msg;
+            enabled_msg.data = true;
+            nav_enabled_pub_->publish(enabled_msg);
+        }
+
+        // ── 创建 /stop_navigation 和 /start_navigation 服务 ─────────────────
+        // 在 goal_pose_bridge_node 而非 Navigator/BT 中创建，确保从启动起一直可用
+        stop_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "/stop_navigation",
+            [this](const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                   std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+                (void)request;
+                navigation_enabled_.store(false);
+                {
+                    std_msgs::msg::Bool msg;
+                    msg.data = false;
+                    nav_enabled_pub_->publish(msg);
+                }
+                response->success = true;
+                response->message = "Navigation stopped.";
+
+                // 取消当前活跃的导航目标（如果存在）
+                if (active_goal_handle_) {
+                    nav_action_client_->async_cancel_goal(active_goal_handle_);
+                    RCLCPP_INFO(this->get_logger(),
+                                "[goal_pose_bridge] Navigation stopped, cancelling active goal.");
+                }
+                RCLCPP_INFO(this->get_logger(), "[goal_pose_bridge] Navigation stopped.");
+            });
+
+        start_srv_ = this->create_service<std_srvs::srv::Trigger>(
+            "/start_navigation",
+            [this](const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                   std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+                (void)request;
+                navigation_enabled_.store(true);
+                {
+                    std_msgs::msg::Bool msg;
+                    msg.data = true;
+                    nav_enabled_pub_->publish(msg);
+                }
+                response->success = true;
+                response->message = "Navigation started.";
+                RCLCPP_INFO(this->get_logger(), "[goal_pose_bridge] Navigation started.");
+            });
+
         RCLCPP_INFO(this->get_logger(),
                     "Ready. goal_topic=%s  path_topic=%s  nav_action_server=%s  bt=%s",
                     kGoalTopic, path_topic_.c_str(),
@@ -127,6 +179,13 @@ private:
 
     void onGoal(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
+        // 检查导航是否启用
+        if (!navigation_enabled_.load()) {
+            RCLCPP_WARN(this->get_logger(),
+                        "Navigation is stopped. Call /start_navigation to enable.");
+            return;
+        }
+
         geometry_msgs::msg::Pose start_pose;
         {
             std::lock_guard<std::mutex> lk(pose_mutex_);
@@ -267,6 +326,14 @@ private:
     // ---------- action ----------
     rclcpp_action::Client<NavigateToPose>::SharedPtr nav_action_client_;
     GoalHandleNavigate::SharedPtr active_goal_handle_;
+
+    // ---------- services ----------
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_srv_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_srv_;
+
+    // ---------- navigation enabled state ----------
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr nav_enabled_pub_;
+    std::atomic<bool> navigation_enabled_{true};
 
     // ---------- robot pose cache ----------
     std::mutex pose_mutex_;

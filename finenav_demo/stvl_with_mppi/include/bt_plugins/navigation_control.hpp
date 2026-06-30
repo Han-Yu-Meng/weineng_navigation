@@ -4,25 +4,24 @@
 
 #pragma once
 
-#include <memory>
+#include <atomic>
 #include <string>
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/trigger.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include "behaviortree_cpp/condition_node.h"
-#include "behaviortree_cpp/bt_factory.h"
 #include "finenav_navigator/thirdparty/ros_node_params.hpp"
 
 namespace finenav {
 
 /**
- * @brief NavigationControl — 处理 /stop_navigation 和 /start_navigation 服务的 BT 条件节点。
+ * @brief NavigationControl — 订阅 /navigation_enabled 话题的 BT 条件节点。
  *
- * 作为 BT::ConditionNode，每次 tick 检查导航是否启用。
- * 如果导航被停止，返回 FAILURE；如果导航启用，返回 SUCCESS。
+ * 作为 RosNodePlugin，订阅 /navigation_enabled (std_msgs::msg::Bool)。
+ * 每次 tick 检查最新值，true 返回 SUCCESS，false 返回 FAILURE。
+ * 默认值 true（导航启用），直到收到第一条消息为止。
  *
- * 服务:
- *   - /stop_navigation (std_srvs::srv::Trigger): 停止导航
- *   - /start_navigation (std_srvs::srv::Trigger): 启动导航
+ * /navigation_enabled 话题由 goal_pose_bridge_node 的
+ * /start_navigation、/stop_navigation 服务更新（transient_local QoS）。
  */
 class NavigationControl : public BT::ConditionNode
 {
@@ -39,20 +38,9 @@ public:
     BT::NodeStatus tick() override;
 
 private:
-    void stopNavigationCallback(
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-
-    void startNavigationCallback(
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-
     rclcpp::Node::SharedPtr node_;
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_service_;
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
-
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr sub_;
     std::atomic<bool> navigation_enabled_{true};
-    bool initialized_{false};
 };
 
 } // namespace finenav

@@ -12,6 +12,8 @@
 #include <memory>
 #include <unordered_set>
 
+#include "std_msgs/msg/string.hpp"
+
 // Eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -495,6 +497,17 @@ int main(int argc, char** argv) {
     auto nav_state_pub = node->create_publisher<nav_msgs::msg::Odometry>("nav_state", 10);
     auto nav_state_pose_pub = node->create_publisher<geometry_msgs::msg::PoseStamped>("nav_state_pose", 10);
     auto nav_state_twist_pub = node->create_publisher<geometry_msgs::msg::TwistStamped>("nav_state_twist", 10);
+
+    // 启动时发布一次 IDLE 状态，确保 /navigation_state 在收到目标前已有初始值
+    // 使用 transient_local QoS 使晚加入的订阅者也能收到最后一条消息
+    auto navigation_state_pub = node->create_publisher<std_msgs::msg::String>(
+        "/navigation_state", rclcpp::QoS(1).transient_local());
+    {
+        std_msgs::msg::String idle_msg;
+        idle_msg.data = "IDLE";
+        navigation_state_pub->publish(idle_msg);
+        RCLCPP_INFO(node->get_logger(), "[hello_finenav] Published initial navigation state: IDLE");
+    }
 
     while (rclcpp::ok()) {
         auto robot_state = localizer->getState();

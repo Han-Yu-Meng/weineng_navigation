@@ -3,6 +3,7 @@
 // All rights reserved.
 
 #include "bt_plugins/navigation_control.hpp"
+#include "finenav_navigator/thirdparty/plugins.hpp"
 
 namespace finenav {
 
@@ -12,67 +13,22 @@ NavigationControl::NavigationControl(
     const BT::RosNodeParams& params)
     : BT::ConditionNode(name, conf), node_(params.nh)
 {
-    // 创建停止服务
-    stop_service_ = node_->create_service<std_srvs::srv::Trigger>(
-        "/stop_navigation",
-        std::bind(&NavigationControl::stopNavigationCallback, this,
-                  std::placeholders::_1, std::placeholders::_2));
-
-    // 创建启动服务
-    start_service_ = node_->create_service<std_srvs::srv::Trigger>(
-        "/start_navigation",
-        std::bind(&NavigationControl::startNavigationCallback, this,
-                  std::placeholders::_1, std::placeholders::_2));
-
-    initialized_ = true;
-
-    RCLCPP_INFO(node_->get_logger(),
-        "[NavigationControl] Initialized. Services: /stop_navigation, /start_navigation");
-}
-
-void NavigationControl::stopNavigationCallback(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
-{
-    (void)request;  // 未使用
-
-    navigation_enabled_.store(false);
-
-    response->success = true;
-    response->message = "Navigation stopped.";
-
-    RCLCPP_INFO(node_->get_logger(), "[NavigationControl] Navigation stopped.");
-}
-
-void NavigationControl::startNavigationCallback(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
-{
-    (void)request;  // 未使用
-
-    navigation_enabled_.store(true);
-
-    response->success = true;
-    response->message = "Navigation started.";
-
-    RCLCPP_INFO(node_->get_logger(), "[NavigationControl] Navigation started.");
+    // 订阅 /navigation_enabled 话题，使用 transient_local 确保晚加入也能收到最后一条消息
+    sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+        "/navigation_enabled",
+        rclcpp::QoS(1).transient_local(),
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {
+            navigation_enabled_.store(msg->data);
+        });
 }
 
 BT::NodeStatus NavigationControl::tick()
 {
-    if (!initialized_) {
-        return BT::NodeStatus::FAILURE;
-    }
-
-    // 检查导航是否启用
-    if (navigation_enabled_.load()) {
-        return BT::NodeStatus::SUCCESS;
-    } else {
-        return BT::NodeStatus::FAILURE;
-    }
+    return navigation_enabled_.load()
+        ? BT::NodeStatus::SUCCESS
+        : BT::NodeStatus::FAILURE;
 }
 
 } // namespace finenav
 
-#include "finenav_navigator/thirdparty/plugins.hpp"
 CreateRosNodePlugin(finenav::NavigationControl, "NavigationControl");

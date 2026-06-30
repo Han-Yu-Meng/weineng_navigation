@@ -6,62 +6,65 @@
 
 <root BTCPP_format="4">
 
-    <!-- 主导航行为树：支持动态跟随抢占普通导航 -->
+    <!-- 主导航行为树：支持动态跟随抢占普通导航
+         ReactiveFallback: 导航启用时执行 TrackThenStop；
+         导航停止时 NavigationControl 返回 FAILURE → 执行 StopAndPublishIDLE -->
     <BehaviorTree ID="NavigateToPose">
         <ReactiveFallback name="NavigationOrStop">
-            <!-- 检查导航是否启用，如果停止则返回 FAILURE -->
-            <NavigationControl/>
-            <Sequence name="StopAndPublishIDLE">
-                <!-- 导航已停止，发布零速 -->
-                <PublishZeroCmdVel topic_name="/cmd_vel"/>
-                <!-- 发布空闲状态 -->
-                <PublishNavigationState topic_name="/navigation_state" state="IDLE"/>
-            </Sequence>
-        </ReactiveFallback>
-        <Sequence name="TrackThenStop">
-            <!-- 发布导航运行状态 -->
-            <PublishNavigationState topic_name="/navigation_state" state="NAVIGATING"/>
-            <ReactiveFallback name="NavigateOrSucceed">
-                <!-- 阶段1: 仅检查位置到达（yaw 由后续节点专门处理） -->
-                <IsGoalReached  robot_pose="{robot_pose}"
-                                robot_twist="{robot_twist}"
-                                goal="{goal}"
-                                tolerance="0.25"
-                                yaw_tolerance="0.0"
-                                speed_tolerance="0.5"/>
-                <Sequence name="RouteThenMppi">
-                    <ComputePlan action_name="/hello_finenav/astar_layer"
-                                 goal="{goal}"
-                                 planner_id="astar_planner"/>
-                    <!--  TODO: 目前对于成功的判定有问题，当完成规划任务后，事实上返回的是Failure，所以需要 ForceSuccess-->
+            <!-- 导航启用路径：NavigationControl SUCCESS → Sequence 继续 → TrackThenStop -->
+            <Sequence name="WhenEnabled">
+                <NavigationControl/>
+                <Sequence name="TrackThenStop">
+                    <!-- 发布导航运行状态 -->
+                    <PublishNavigationState topic_name="/navigation_state" state="NAVIGATING"/>
+                    <ReactiveFallback name="NavigateOrSucceed">
+                        <!-- 阶段1: 仅检查位置到达（yaw 由后续节点专门处理） -->
+                        <IsGoalReached  robot_pose="{robot_pose}"
+                                        robot_twist="{robot_twist}"
+                                        goal="{goal}"
+                                        tolerance="0.25"
+                                        yaw_tolerance="0.0"
+                                        speed_tolerance="0.5"/>
+                        <Sequence name="RouteThenMppi">
+                            <ComputePlan action_name="/hello_finenav/astar_layer"
+                                         goal="{goal}"
+                                         planner_id="astar_planner"/>
+                            <!--  TODO: 目前对于成功的判定有问题，当完成规划任务后，事实上返回的是Failure，所以需要 ForceSuccess-->
+                            <ForceSuccess>
+                                <ComputePlan action_name="/hello_finenav/mppi_layer"
+                                             goal="{goal}"
+                                             planner_id="finenav_rotate_shim"/>
+                            </ForceSuccess>
+                            <!-- MPPI 跟踪失败时仅重试 MPPI，不重新规划全局路径 -->
+                            <RetryUntilSuccessful num_attempts="-1">
+                                <Sequence name="MppiWithState">
+                                    <!-- 发布被障碍物遮挡 MPPI 失败状态 -->
+                                    <PublishNavigationState topic_name="/navigation_state" state="MPPI_OBSTACLE_BLOCKED"/>
+                                    <ComputePlan action_name="/hello_finenav/mppi_layer"
+                                                 goal="{goal}"
+                                                 planner_id="finenav_mppi_controller"/>
+                                </Sequence>
+                            </RetryUntilSuccessful>
+                        </Sequence>
+                    </ReactiveFallback>
+                    <!-- 阶段2: 位置到达后，旋转对齐 goal_pose 的朝向
+                         RotateShim 在距离 goal < close_to_goal_threshold 时自动使用 goal 朝向 -->
                     <ForceSuccess>
                         <ComputePlan action_name="/hello_finenav/mppi_layer"
                                      goal="{goal}"
                                      planner_id="finenav_rotate_shim"/>
                     </ForceSuccess>
-                    <!-- MPPI 跟踪失败时仅重试 MPPI，不重新规划全局路径 -->
-                    <RetryUntilSuccessful num_attempts="-1">
-                        <Sequence name="MppiWithState">
-                            <!-- 发布被障碍物遮挡 MPPI 失败状态 -->
-                            <PublishNavigationState topic_name="/navigation_state" state="MPPI_OBSTACLE_BLOCKED"/>
-                            <ComputePlan action_name="/hello_finenav/mppi_layer"
-                                         goal="{goal}"
-                                         planner_id="finenav_mppi_controller"/>
-                        </Sequence>
-                    </RetryUntilSuccessful>
+                    <!-- 阶段3: 安全停止 -->
+                    <PublishZeroCmdVel topic_name="/cmd_vel"/>
+                    <!-- 发布导航成功状态 -->
+                    <PublishNavigationState topic_name="/navigation_state" state="GOAL_REACHED"/>
                 </Sequence>
-            </ReactiveFallback>
-            <!-- 阶段2: 位置到达后，旋转对齐 goal_pose 的朝向
-                 RotateShim 在距离 goal < close_to_goal_threshold 时自动使用 goal 朝向 -->
-            <ForceSuccess>
-                <ComputePlan action_name="/hello_finenav/mppi_layer"
-                             goal="{goal}"
-                             planner_id="finenav_rotate_shim"/>
-            </ForceSuccess>
-            <!-- 阶段3: 安全停止 -->
-            <PublishZeroCmdVel topic_name="/cmd_vel"/>
-            <!-- 发布导航成功状态 -->
-            <PublishNavigationState topic_name="/navigation_state" state="GOAL_REACHED"/>
-        </Sequence>
+            </Sequence>
+            <!-- 导航停止路径：发布零速 + 空闲状态 -->
+            <Sequence name="StopAndPublishIDLE">
+                <PublishZeroCmdVel topic_name="/cmd_vel"/>
+                <PublishNavigationState topic_name="/navigation_state" state="IDLE"/>
+            </Sequence>
+        </ReactiveFallback>
     </BehaviorTree>
 </root>
